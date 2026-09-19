@@ -87,50 +87,92 @@ function Get-ExistingInstallDir() {
 	return $null
 }
 
+function New-RoundedPath([Drawing.Rectangle]$Rect, [int]$Radius) {
+	$path = New-Object Drawing.Drawing2D.GraphicsPath
+	$diameter = [Math]::Max(2, [Math]::Min($Radius * 2, [Math]::Min($Rect.Width, $Rect.Height)))
+	$arc = New-Object Drawing.Rectangle($Rect.X, $Rect.Y, $diameter, $diameter)
+	$path.AddArc($arc, 180, 90)
+	$arc.X = $Rect.Right - $diameter
+	$path.AddArc($arc, 270, 90)
+	$arc.Y = $Rect.Bottom - $diameter
+	$path.AddArc($arc, 0, 90)
+	$arc.X = $Rect.X
+	$path.AddArc($arc, 90, 90)
+	$path.CloseFigure()
+	return $path
+}
+
 function New-ModernButton([string]$Text, [bool]$Primary) {
 	$button = New-Object System.Windows.Forms.Button
 	$button.Text = $Text
-	$button.Size = New-Object Drawing.Size(112, 36)
+	$button.Size = New-Object Drawing.Size(112, 40)
 	$button.FlatStyle = [Windows.Forms.FlatStyle]::Flat
-	$button.FlatAppearance.BorderSize = 1
+	$button.FlatAppearance.BorderSize = 0
+	$button.UseVisualStyleBackColor = $false
 	$button.Cursor = [Windows.Forms.Cursors]::Hand
 	$button.Font = New-Object Drawing.Font('Segoe UI', 9)
-	$button.UseVisualStyleBackColor = $false
-	if ($Primary) {
-		$button.BackColor = $UiAccent
-		$button.ForeColor = [Drawing.Color]::White
-		$button.FlatAppearance.BorderColor = $UiAccent
-		$button.Add_MouseEnter({ if ($this.Enabled) { $this.BackColor = $UiAccentHover; $this.FlatAppearance.BorderColor = $UiAccentHover } })
-		$button.Add_MouseLeave({ if ($this.Enabled) { $this.BackColor = $UiAccent; $this.FlatAppearance.BorderColor = $UiAccent } })
-	} else {
-		$button.BackColor = $UiSurface
-		$button.ForeColor = $UiText
-		$button.FlatAppearance.BorderColor = $UiBorder
-		$button.Add_MouseEnter({ if ($this.Enabled) { $this.BackColor = [Drawing.Color]::FromArgb(247,251,252) } })
-		$button.Add_MouseLeave({ if ($this.Enabled) { $this.BackColor = $UiSurface } })
-	}
+	$button.TextAlign = [Drawing.ContentAlignment]::MiddleCenter
+	$button.UseCompatibleTextRendering = $false
+	$button.Padding = New-Object Windows.Forms.Padding(0)
+	$button.Tag = [pscustomobject]@{ Primary = $Primary; Hover = $false }
+
+	$button.Add_MouseEnter({
+		if ($this.Enabled) {
+			$this.Tag.Hover = $true
+			$this.Invalidate()
+		}
+	})
+	$button.Add_MouseLeave({
+		$this.Tag.Hover = $false
+		$this.Invalidate()
+	})
+	$button.Add_EnabledChanged({ $this.Invalidate() })
+	$button.Add_Paint({
+		param($sender, $e)
+
+		$e.Graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+		$parentColor = if ($null -ne $this.Parent) { $this.Parent.BackColor } else { $UiSurface }
+		$e.Graphics.Clear($parentColor)
+
+		$rect = New-Object Drawing.Rectangle(0, 0, [Math]::Max(1, $this.Width - 1), [Math]::Max(1, $this.Height - 1))
+		if (-not $this.Enabled) {
+			$back = $UiDisabled
+			$border = [Drawing.Color]::FromArgb(224,231,233)
+			$textColor = $UiDisabledText
+		} elseif ($this.Tag.Primary) {
+			$back = if ($this.Tag.Hover) { $UiAccentHover } else { $UiAccent }
+			$border = $back
+			$textColor = [Drawing.Color]::White
+		} else {
+			$back = if ($this.Tag.Hover) { [Drawing.Color]::FromArgb(247,251,252) } else { $UiSurface }
+			$border = $UiBorder
+			$textColor = $UiText
+		}
+
+		$path = New-RoundedPath $rect 6
+		$brush = New-Object Drawing.SolidBrush($back)
+		$pen = New-Object Drawing.Pen($border)
+		try {
+			$e.Graphics.FillPath($brush, $path)
+			$e.Graphics.DrawPath($pen, $path)
+			$flags = [Windows.Forms.TextFormatFlags]::HorizontalCenter -bor
+				[Windows.Forms.TextFormatFlags]::VerticalCenter -bor
+				[Windows.Forms.TextFormatFlags]::SingleLine -bor
+				[Windows.Forms.TextFormatFlags]::EndEllipsis
+			[Windows.Forms.TextRenderer]::DrawText($e.Graphics, $this.Text, $this.Font, $this.ClientRectangle, $textColor, $flags)
+		} finally {
+			$pen.Dispose()
+			$brush.Dispose()
+			$path.Dispose()
+		}
+	})
 	return $button
 }
 
 function Set-ButtonEnabled($Button, [bool]$Enabled, [bool]$Primary) {
 	$Button.Enabled = $Enabled
-	if ($Enabled) {
-		$Button.Cursor = [Windows.Forms.Cursors]::Hand
-		if ($Primary) {
-			$Button.BackColor = $UiAccent
-			$Button.ForeColor = [Drawing.Color]::White
-			$Button.FlatAppearance.BorderColor = $UiAccent
-		} else {
-			$Button.BackColor = $UiSurface
-			$Button.ForeColor = $UiText
-			$Button.FlatAppearance.BorderColor = $UiBorder
-		}
-	} else {
-		$Button.Cursor = [Windows.Forms.Cursors]::Default
-		$Button.BackColor = $UiDisabled
-		$Button.ForeColor = $UiDisabledText
-		$Button.FlatAppearance.BorderColor = $UiBorder
-	}
+	$Button.Cursor = if ($Enabled) { [Windows.Forms.Cursors]::Hand } else { [Windows.Forms.Cursors]::Default }
+	$Button.Invalidate()
 }
 
 function Add-Label([string]$Text, [int]$X, [int]$Y, [int]$Width, [int]$Height, $Color, $Font = $null) {
@@ -157,7 +199,7 @@ $form.StartPosition = 'CenterScreen'
 $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
-$form.ClientSize = New-Object Drawing.Size(600, 512)
+$form.ClientSize = New-Object Drawing.Size(600, 516)
 $form.Font = New-Object Drawing.Font('Segoe UI', 9)
 $form.BackColor = $UiSurface
 $form.AutoScaleMode = [Windows.Forms.AutoScaleMode]::Dpi
@@ -186,21 +228,30 @@ $dirBorder.Size = New-Object Drawing.Size(414, 40)
 $dirBorder.BackColor = $UiBorder
 $form.Controls.Add($dirBorder)
 
+$dirInner = New-Object System.Windows.Forms.Panel
+$dirInner.Location = New-Object Drawing.Point(1, 1)
+$dirInner.Size = New-Object Drawing.Size(412, 38)
+$dirInner.BackColor = $UiSurface
+$dirBorder.Controls.Add($dirInner)
+
 $installDirBox = New-Object System.Windows.Forms.TextBox
 $installDirBox.Text = $AppDir
 $installDirBox.BorderStyle = [Windows.Forms.BorderStyle]::None
-$installDirBox.Location = New-Object Drawing.Point(10, 10)
-$installDirBox.Size = New-Object Drawing.Size(394, 19)
+$installDirBox.Location = New-Object Drawing.Point(10, 9)
+$installDirBox.Size = New-Object Drawing.Size(392, 20)
 $installDirBox.Font = New-Object Drawing.Font('Segoe UI', 9.5)
 $installDirBox.BackColor = $UiSurface
 $installDirBox.ForeColor = $UiText
-$dirBorder.Controls.Add($installDirBox)
+$dirInner.Controls.Add($installDirBox)
+
 $installDirBox.Add_GotFocus({ $dirBorder.BackColor = $UiAccent })
 $installDirBox.Add_LostFocus({ $dirBorder.BackColor = $UiBorder })
+$dirInner.Add_Click({ $installDirBox.Focus() })
+$dirInner.Cursor = [Windows.Forms.Cursors]::IBeam
 
 $browseButton = New-ModernButton 'Browse...' $false
-$browseButton.Location = New-Object Drawing.Point(456, 148)
-$browseButton.Size = New-Object Drawing.Size(112, 36)
+$browseButton.Location = New-Object Drawing.Point(456, 146)
+$browseButton.Size = New-Object Drawing.Size(112, 40)
 $form.Controls.Add($browseButton)
 
 $componentsLabel = Add-Label 'Installed components' 32 207 536 22 $UiText
@@ -284,7 +335,7 @@ $form.Controls.Add($installButton)
 
 $closeButton = New-ModernButton 'Close' $false
 $closeButton.Location = New-Object Drawing.Point(466, 454)
-$closeButton.Size = New-Object Drawing.Size(102, 36)
+$closeButton.Size = New-Object Drawing.Size(102, 40)
 $closeButton.Add_Click({ $form.Close() })
 $form.Controls.Add($closeButton)
 $form.AcceptButton = $installButton
@@ -292,7 +343,6 @@ $form.CancelButton = $closeButton
 
 if ($isUpdate) {
 	$installDirBox.ReadOnly = $true
-	$installDirBox.BackColor = [Drawing.Color]::FromArgb(248,250,251)
 	Set-ButtonEnabled $browseButton $false $false
 }
 

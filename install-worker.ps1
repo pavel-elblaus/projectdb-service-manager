@@ -47,6 +47,10 @@ $AppDir = $null
 $ServiceRoot = $null
 $ManagerExe = $null
 $LegacyTrayExe = $null
+$LegacyManagerExe = $null
+$LegacyServiceControlExe = $null
+$LegacyLogWrapperExe = $null
+$LegacyUninstallExe = $null
 $ServiceControlExe = $null
 $LogWrapperExe = $null
 $UninstallExe = $null
@@ -92,13 +96,20 @@ function Escape-Xml([string]$Text) {
 function Set-InstallPaths([string]$Directory) {
 	$script:AppDir = $Directory
 	$script:ServiceRoot = Join-Path $AppDir 'service'
-	$script:ManagerExe = Join-Path $AppDir 'ProjectDB-Service-Manager.exe'
-	$script:LegacyTrayExe = Join-Path $AppDir 'projectdb-tray.exe'
-	$script:ServiceControlExe = Join-Path $AppDir 'projectdb-service-control.exe'
-	$script:LogWrapperExe = Join-Path $AppDir 'projectdb-log-wrapper.exe'
-	$script:UninstallExe = Join-Path $AppDir 'ProjectDB-Uninstall.exe'
 	$script:BinDir = Join-Path $AppDir 'bin'
+
+	$script:ManagerExe = Join-Path $BinDir 'projectdb-service-manager.exe'
+	$script:ServiceControlExe = Join-Path $BinDir 'projectdb-service-control.exe'
+	$script:LogWrapperExe = Join-Path $BinDir 'projectdb-log-wrapper.exe'
+	$script:UninstallExe = Join-Path $BinDir 'projectdb-uninstall.exe'
 	$script:CommonWinSw = Join-Path $BinDir 'winsw.exe'
+
+	$script:LegacyTrayExe = Join-Path $AppDir 'projectdb-tray.exe'
+	$script:LegacyManagerExe = Join-Path $AppDir 'ProjectDB-Service-Manager.exe'
+	$script:LegacyServiceControlExe = Join-Path $AppDir 'projectdb-service-control.exe'
+	$script:LegacyLogWrapperExe = Join-Path $AppDir 'projectdb-log-wrapper.exe'
+	$script:LegacyUninstallExe = Join-Path $AppDir 'ProjectDB-Uninstall.exe'
+
 	$script:InstalledIcon = Join-Path $AppDir 'projectdb.ico'
 	$script:InstalledNotices = Join-Path $AppDir 'THIRD-PARTY-NOTICES.txt'
 	$script:InstallerLogDir = Join-Path $AppDir 'log\installer'
@@ -458,12 +469,24 @@ try {
 	}
 
 	Write-Status 38 'Stopping ProjectDB Service Manager and active ProjectDB services...'
-	$managerProcesses = @(Get-Process -Name 'projectdb-tray','ProjectDB-Service-Manager' -ErrorAction SilentlyContinue)
+	$managerProcesses = @(Get-Process -Name 'projectdb-tray','projectdb-service-manager' -ErrorAction SilentlyContinue)
 	$managerProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
 	foreach ($managerProcess in $managerProcesses) {
 		try { $managerProcess.WaitForExit(5000) } catch {}
 	}
-	Remove-Item -LiteralPath $LegacyTrayExe -Force -ErrorAction SilentlyContinue
+
+	@(
+		$LegacyTrayExe,
+		$LegacyManagerExe,
+		$LegacyServiceControlExe,
+		$LegacyLogWrapperExe,
+		$LegacyUninstallExe
+	) | ForEach-Object {
+		if (-not [string]::IsNullOrWhiteSpace([string]$_)) {
+			Remove-Item -LiteralPath $_ -Force -ErrorAction SilentlyContinue
+		}
+	}
+
 	$previousRunning = Stop-ProjectDbServices
 
 	Write-Status 48 'Installing ProjectDB files...'

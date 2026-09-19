@@ -1,0 +1,52 @@
+name: Publish release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Verify release tag
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath .\VERSION -Raw).Trim()
+          $expectedTag = "v$version"
+          if ($env:GITHUB_REF_NAME -ne $expectedTag) {
+            throw "Release tag '$env:GITHUB_REF_NAME' does not match VERSION '$version'. Expected '$expectedTag'."
+          }
+
+      - name: Build offline installer
+        shell: pwsh
+        run: .\build-offline.ps1
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content -LiteralPath .\VERSION -Raw).Trim()
+          $file = "ProjectDB-Setup-$version.exe"
+          $args = @(
+            'release', 'create', $env:GITHUB_REF_NAME, $file,
+            '--repo', $env:GITHUB_REPOSITORY,
+            '--title', "ProjectDB Service Manager $env:GITHUB_REF_NAME",
+            '--generate-notes'
+          )
+          if ($version.Contains('-')) { $args += '--prerelease' }
+          & gh @args
+          if ($LASTEXITCODE -ne 0) { throw "GitHub Release creation failed with exit code $LASTEXITCODE" }

@@ -87,17 +87,19 @@ function Get-ExistingInstallDir() {
 		$item = Get-ItemProperty -Path $UninstallKey -ErrorAction Stop
 		$candidate = [string]$item.InstallLocation
 		if (-not [string]::IsNullOrWhiteSpace($candidate)) {
-			$manager = Join-Path $candidate 'ProjectDB-Service-Manager.exe'
+			$manager = Join-Path $candidate 'bin\projectdb-service-manager.exe'
+			$legacyManager = Join-Path $candidate 'ProjectDB-Service-Manager.exe'
 			$projectDb = Join-Path $candidate 'projectdb.exe'
-			if ((Test-Path -LiteralPath $manager -PathType Leaf) -or (Test-Path -LiteralPath $projectDb -PathType Leaf)) {
+			if ((Test-Path -LiteralPath $manager -PathType Leaf) -or (Test-Path -LiteralPath $legacyManager -PathType Leaf) -or (Test-Path -LiteralPath $projectDb -PathType Leaf)) {
 				return $candidate.TrimEnd('\')
 			}
 		}
 	} catch {}
 
-	$defaultManager = Join-Path $DefaultAppDir 'ProjectDB-Service-Manager.exe'
+	$defaultManager = Join-Path $DefaultAppDir 'bin\projectdb-service-manager.exe'
+	$defaultLegacyManager = Join-Path $DefaultAppDir 'ProjectDB-Service-Manager.exe'
 	$defaultProjectDb = Join-Path $DefaultAppDir 'projectdb.exe'
-	if ((Test-Path -LiteralPath $defaultManager -PathType Leaf) -or (Test-Path -LiteralPath $defaultProjectDb -PathType Leaf)) {
+	if ((Test-Path -LiteralPath $defaultManager -PathType Leaf) -or (Test-Path -LiteralPath $defaultLegacyManager -PathType Leaf) -or (Test-Path -LiteralPath $defaultProjectDb -PathType Leaf)) {
 		return $DefaultAppDir
 	}
 	return $null
@@ -121,14 +123,23 @@ function New-RoundedPath([Drawing.Rectangle]$Rect, [int]$Radius) {
 function New-RightRoundedPath([Drawing.Rectangle]$Rect, [int]$Radius) {
 	$path = New-Object Drawing.Drawing2D.GraphicsPath
 	$diameter = [Math]::Max(2, [Math]::Min($Radius * 2, [Math]::Min($Rect.Width, $Rect.Height)))
-	$arc = New-Object Drawing.Rectangle($Rect.Right - $diameter, $Rect.Y, $diameter, $diameter)
+	$left = [int]$Rect.Left
+	$top = [int]$Rect.Top
+	$right = [int]$Rect.Right
+	$bottom = [int]$Rect.Bottom
+
+	$arc = New-Object Drawing.Rectangle
+	$arc.X = $right - $diameter
+	$arc.Y = $top
+	$arc.Width = $diameter
+	$arc.Height = $diameter
 
 	$path.StartFigure()
-	$path.AddLine($Rect.X, $Rect.Y, $Rect.Right - $Radius, $Rect.Y)
+	$path.AddLine($left, $top, $right - $Radius, $top)
 	$path.AddArc($arc, 270, 90)
-	$arc.Y = $Rect.Bottom - $diameter
+	$arc.Y = $bottom - $diameter
 	$path.AddArc($arc, 0, 90)
-	$path.AddLine($Rect.Right - $Radius, $Rect.Bottom, $Rect.X, $Rect.Bottom)
+	$path.AddLine($right - $Radius, $bottom, $left, $bottom)
 	$path.CloseFigure()
 	return $path
 }
@@ -245,7 +256,8 @@ $form.Add_Shown({ $form.Activate(); $form.BringToFront(); $form.TopMost = $false
 
 $title = Add-Label $actionTitle 30 22 538 34 $UiText (New-Object Drawing.Font('Segoe UI Semibold', 15))
 
-$subtitleText = "Service Manager $ServiceManagerVersion  ·  ProjectDB $ProjectDbVersion  ·  Windows $ProjectDbArchitecture"
+$subtitleSeparator = [char]0x00B7
+$subtitleText = "Service Manager $ServiceManagerVersion  $subtitleSeparator  ProjectDB $ProjectDbVersion  $subtitleSeparator  Windows $ProjectDbArchitecture"
 $subtitle = Add-Label $subtitleText 32 58 536 24 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.8))
 
 $noteText = if ($isUpdate) {

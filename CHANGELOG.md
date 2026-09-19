@@ -2,6 +2,7 @@
 
 ## Unreleased — 0.1.0-dev
 
+- Set the main Service Manager window default and minimum size to 860x560; users can enlarge it as needed.
 - Switched application service identifiers from the `ProjectDB` prefix to the shorter `PDB` prefix; legacy identifiers are shown with the shortened prefix in the UI.
 - Fixed the custom Browse button paint path on Windows PowerShell 5.1 and corrected the centered-dot subtitle separator.
 - Moved Service Manager executables into `bin` with lowercase names while preserving ProjectDB release files in place.

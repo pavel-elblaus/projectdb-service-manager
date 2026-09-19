@@ -252,7 +252,20 @@ $form.AutoScaleMode = [Windows.Forms.AutoScaleMode]::Dpi
 $form.ShowInTaskbar = $true
 $form.TopMost = $true
 try { $form.Icon = New-Object Drawing.Icon($ProjectDbIcon) } catch {}
-$form.Add_Shown({ $form.Activate(); $form.BringToFront(); $form.TopMost = $false })
+$form.Add_Shown({
+	$form.Activate()
+	$form.BringToFront()
+	$form.TopMost = $false
+
+	# Do not auto-focus/select the installation path on first launch.
+	if ($null -ne $installButton) {
+		$form.ActiveControl = $installButton
+		$installButton.Focus() | Out-Null
+	}
+	if (-not $isUpdate -and $installDirBox -is [Windows.Forms.TextBox]) {
+		$installDirBox.SelectionLength = 0
+	}
+})
 
 $title = Add-Label $actionTitle 28 22 540 34 $UiText (New-Object Drawing.Font('Segoe UI Semibold', 15))
 

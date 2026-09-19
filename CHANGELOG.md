@@ -2,6 +2,8 @@
 
 ## Unreleased — 0.1.0-dev
 
+- Smoothed the custom Setup progress indicator and aligned subtitle separators with Service Manager.
+- Reduced the Browse button corner radius to visually pair it with the installation directory field.
 - Matched Setup button sizes, directory display, and progress indicator to the Service Manager UI.
 - Added ProjectDB icon resources for the Setup executable and taskbar identity.
 - Aligned the Setup UI styling and spacing with the Add ProjectDB application dialog.

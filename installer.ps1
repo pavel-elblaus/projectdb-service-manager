@@ -118,7 +118,7 @@ function New-RoundedPath([Drawing.Rectangle]$Rect, [int]$Radius) {
 	return $path
 }
 
-function New-ModernButton([string]$Text, [bool]$Primary) {
+function New-ModernButton([string]$Text, [bool]$Primary, [int]$Radius = 6) {
 	$button = New-Object System.Windows.Forms.Button
 	$button.Text = $Text
 	$button.Size = New-Object Drawing.Size(112, 40)
@@ -130,7 +130,7 @@ function New-ModernButton([string]$Text, [bool]$Primary) {
 	$button.TextAlign = [Drawing.ContentAlignment]::MiddleCenter
 	$button.UseCompatibleTextRendering = $false
 	$button.Padding = New-Object Windows.Forms.Padding(0)
-	$button.Tag = [pscustomobject]@{ Primary = $Primary; Hover = $false }
+	$button.Tag = [pscustomobject]@{ Primary = $Primary; Hover = $false; Radius = $Radius }
 
 	$button.Add_MouseEnter({
 		if ($this.Enabled) {
@@ -165,7 +165,7 @@ function New-ModernButton([string]$Text, [bool]$Primary) {
 			$textColor = $UiText
 		}
 
-		$path = New-RoundedPath $rect 6
+		$path = New-RoundedPath $rect ([int]$this.Tag.Radius)
 		$brush = New-Object Drawing.SolidBrush($back)
 		$pen = New-Object Drawing.Pen($border)
 		try {
@@ -226,7 +226,7 @@ $form.Add_Shown({ $form.Activate(); $form.BringToFront(); $form.TopMost = $false
 
 $title = Add-Label $actionTitle 30 22 538 34 $UiText (New-Object Drawing.Font('Segoe UI Semibold', 15))
 
-$subtitleText = "Service Manager $ServiceManagerVersion  |  ProjectDB $ProjectDbVersion  |  Windows $ProjectDbArchitecture"
+$subtitleText = "Service Manager $ServiceManagerVersion  ·  ProjectDB $ProjectDbVersion  ·  Windows $ProjectDbArchitecture"
 $subtitle = Add-Label $subtitleText 32 58 536 24 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.8))
 
 $noteText = if ($isUpdate) {
@@ -279,7 +279,7 @@ if ($isUpdate) {
 	$dirInner.Cursor = [Windows.Forms.Cursors]::IBeam
 }
 
-$browseButton = New-ModernButton 'Browse...' $false
+$browseButton = New-ModernButton 'Browse...' $false 3
 $browseButton.Location = New-Object Drawing.Point(456, 146)
 $browseButton.Size = New-Object Drawing.Size(112, 40)
 $form.Controls.Add($browseButton)
@@ -354,6 +354,15 @@ $progress.Location = New-Object Drawing.Point(32, 397)
 $progress.Size = New-Object Drawing.Size(536, 10)
 $progress.BackColor = $UiSurface
 $progress.Tag = 0
+try {
+	$doubleBufferedProperty = [Windows.Forms.Control].GetProperty(
+		'DoubleBuffered',
+		[Reflection.BindingFlags]::Instance -bor [Reflection.BindingFlags]::NonPublic
+	)
+	if ($null -ne $doubleBufferedProperty) {
+		$doubleBufferedProperty.SetValue($progress, $true, $null)
+	}
+} catch {}
 $progress.Add_Paint({
 	param($sender, $e)
 
@@ -386,7 +395,9 @@ $progress.Add_Paint({
 $form.Controls.Add($progress)
 
 function Set-ProgressValue([int]$Value) {
-	$progress.Tag = [Math]::Max(0, [Math]::Min(100, $Value))
+	$nextValue = [Math]::Max(0, [Math]::Min(100, $Value))
+	if ([int]$progress.Tag -eq $nextValue) { return }
+	$progress.Tag = $nextValue
 	$progress.Invalidate()
 }
 

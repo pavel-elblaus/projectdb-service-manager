@@ -649,7 +649,10 @@ namespace ProjectDBTray
 			_dot.DotColor = StatusColor(service);
 
 			List<string> details = new List<string>();
-			details.Add(service.ServiceId);
+			string shownServiceId = service.ServiceId;
+			if (!String.IsNullOrWhiteSpace(shownServiceId) && shownServiceId.StartsWith("ProjectDB", StringComparison.OrdinalIgnoreCase))
+				shownServiceId = "PDB" + shownServiceId.Substring("ProjectDB".Length);
+			details.Add(shownServiceId);
 			if (service.Status == ServiceControllerStatus.Running)
 			{
 				int pid = 0;

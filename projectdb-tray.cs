@@ -775,8 +775,8 @@ namespace ProjectDBTray
 			Text = "ProjectDB Service Manager";
 			Icon = icon;
 			StartPosition = FormStartPosition.CenterScreen;
-			MinimumSize = new Size(900, 650);
-			Size = new Size(1040, 720);
+			MinimumSize = new Size(860, 560);
+			Size = new Size(860, 560);
 			BackColor = Ui.Background;
 			Font = new Font("Segoe UI", 9F);
 			ShowInTaskbar = true;

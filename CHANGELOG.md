@@ -2,6 +2,7 @@
 
 ## Unreleased — 0.1.0-dev
 
+- Switched the Setup progress indicator to a square-corner style for a cleaner, more consistent layout.
 - Kept the standard 6 px button radius while making the Browse button square on the field-facing left side.
 - Smoothed the custom Setup progress indicator and aligned subtitle separators with Service Manager.
 - Reduced the Browse button corner radius to visually pair it with the installation directory field.

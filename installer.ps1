@@ -385,29 +385,22 @@ try {
 $progress.Add_Paint({
 	param($sender, $e)
 
-	$e.Graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
-	$trackRect = New-Object Drawing.Rectangle(0, 0, [Math]::Max(1, $this.Width - 1), [Math]::Max(1, $this.Height - 1))
-	$trackPath = New-RoundedPath $trackRect 4
 	$trackBrush = New-Object Drawing.SolidBrush($UiDivider)
 	try {
-		$e.Graphics.FillPath($trackBrush, $trackPath)
+		$e.Graphics.FillRectangle($trackBrush, 0, 0, $this.Width, $this.Height)
 	} finally {
 		$trackBrush.Dispose()
-		$trackPath.Dispose()
 	}
 
 	$percent = [Math]::Max(0, [Math]::Min(100, [int]$this.Tag))
 	if ($percent -gt 0) {
-		$fillWidth = [Math]::Max($this.Height, [int][Math]::Round($this.Width * $percent / 100.0))
+		$fillWidth = [Math]::Max(1, [int][Math]::Round($this.Width * $percent / 100.0))
 		$fillWidth = [Math]::Min($this.Width, $fillWidth)
-		$fillRect = New-Object Drawing.Rectangle(0, 0, [Math]::Max(1, $fillWidth - 1), [Math]::Max(1, $this.Height - 1))
-		$fillPath = New-RoundedPath $fillRect 4
 		$fillBrush = New-Object Drawing.SolidBrush($UiAccent)
 		try {
-			$e.Graphics.FillPath($fillBrush, $fillPath)
+			$e.Graphics.FillRectangle($fillBrush, 0, 0, $fillWidth, $this.Height)
 		} finally {
 			$fillBrush.Dispose()
-			$fillPath.Dispose()
 		}
 	}
 })

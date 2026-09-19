@@ -1211,7 +1211,7 @@ namespace ProjectDBTray
 			TableLayoutPanel root = new TableLayoutPanel();
 			root.Dock = DockStyle.Fill;
 			root.Margin = new Padding(0);
-			root.Padding = new Padding(28, 24, 32, 22);
+			root.Padding = new Padding(27, 24, 32, 22);
 			root.ColumnCount = 1;
 			root.RowCount = 13;
 			root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
@@ -1234,7 +1234,7 @@ namespace ProjectDBTray
 			title.Font = new Font("Segoe UI Semibold", 15F);
 			title.ForeColor = Ui.Text;
 			title.Dock = DockStyle.Fill;
-			title.Margin = new Padding(1, 0, 0, 0);
+			title.Margin = new Padding(0, 0, 0, 0);
 			title.TextAlign = ContentAlignment.MiddleLeft;
 			root.Controls.Add(title, 0, 0);
 
@@ -1243,7 +1243,7 @@ namespace ProjectDBTray
 			note.ForeColor = Ui.Muted;
 			note.Font = new Font("Segoe UI", 8.8F);
 			note.Dock = DockStyle.Fill;
-			note.Margin = new Padding(4, 4, 0, 0);
+			note.Margin = new Padding(3, 4, 0, 0);
 			note.TextAlign = ContentAlignment.TopLeft;
 			note.AutoEllipsis = true;
 			root.Controls.Add(note, 0, 1);
@@ -1299,7 +1299,7 @@ namespace ProjectDBTray
 			label.Font = new Font("Segoe UI", 9F);
 			label.ForeColor = Ui.Text;
 			label.Dock = DockStyle.Fill;
-			label.Margin = new Padding(4, 0, 0, 4);
+			label.Margin = new Padding(3, 0, 0, 4);
 			label.TextAlign = ContentAlignment.MiddleLeft;
 			return label;
 		}
@@ -1308,7 +1308,7 @@ namespace ProjectDBTray
 		{
 			ModernTextBox box = new ModernTextBox();
 			box.Dock = DockStyle.Fill;
-			box.Margin = new Padding(4, 0, 0, 0);
+			box.Margin = new Padding(5, 0, 0, 0);
 			box.UseSystemPasswordChar = password;
 			return box;
 		}

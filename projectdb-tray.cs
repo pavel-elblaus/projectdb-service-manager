@@ -454,7 +454,7 @@ namespace ProjectDBTray
 			MinimumSize = new Size(100, 40);
 			BackColor = Ui.Border;
 			DoubleBuffered = true;
-			TabStop = false;
+			TabStop = true;
 
 			_inner = new Panel();
 			_inner.BackColor = Ui.Surface;
@@ -466,7 +466,7 @@ namespace ProjectDBTray
 			_textBox.Font = new Font("Segoe UI", 9.5F);
 			_textBox.BackColor = Ui.Surface;
 			_textBox.ForeColor = Ui.Text;
-			_textBox.TabStop = true;
+			_textBox.TabStop = false;
 			_textBox.GotFocus += delegate { _focused = true; UpdateBorder(); };
 			_textBox.LostFocus += delegate { _focused = false; UpdateBorder(); };
 			_textBox.TextChanged += delegate { OnTextChanged(EventArgs.Empty); };
@@ -489,6 +489,12 @@ namespace ProjectDBTray
 		{
 			get { return _textBox.UseSystemPasswordChar; }
 			set { _textBox.UseSystemPasswordChar = value; }
+		}
+
+		protected override void OnEnter(EventArgs e)
+		{
+			base.OnEnter(e);
+			if (_textBox != null && !_textBox.Focused) _textBox.Focus();
 		}
 
 		private void UpdateBorder()
@@ -1252,16 +1258,19 @@ namespace ProjectDBTray
 			root.Controls.Add(hostLabel, 0, 3);
 			_host = CreateTextField(false);
 			_host.Text = "node.projectdb.pro";
+			_host.TabIndex = 0;
 			root.Controls.Add(_host, 0, 4);
 
 			Label appLabel = CreateFieldLabel("Application name");
 			root.Controls.Add(appLabel, 0, 6);
 			_app = CreateTextField(false);
+			_app.TabIndex = 1;
 			root.Controls.Add(_app, 0, 7);
 
 			Label passwordLabel = CreateFieldLabel("Access password");
 			root.Controls.Add(passwordLabel, 0, 9);
 			_password = CreateTextField(true);
+			_password.TabIndex = 2;
 			root.Controls.Add(_password, 0, 10);
 
 			TableLayoutPanel buttons = new TableLayoutPanel();
@@ -1275,12 +1284,14 @@ namespace ProjectDBTray
 			buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
 			_register = Ui.Button("Register", true);
+			_register.TabIndex = 3;
 			_register.Dock = DockStyle.Fill;
 			_register.Margin = new Padding(0, 0, 8, 0);
 			_register.Click += RegisterClick;
 			buttons.Controls.Add(_register, 1, 0);
 
 			Button cancel = Ui.Button("Cancel", false);
+			cancel.TabIndex = 4;
 			cancel.Dock = DockStyle.Fill;
 			cancel.Margin = new Padding(0);
 			cancel.Click += delegate { Close(); };

@@ -475,6 +475,9 @@ try {
 		try { $managerProcess.WaitForExit(5000) } catch {}
 	}
 
+	$previousRunning = Stop-ProjectDbServices
+
+	# Remove the previous root-level layout only after service processes have exited.
 	@(
 		$LegacyTrayExe,
 		$LegacyManagerExe,
@@ -486,8 +489,6 @@ try {
 			Remove-Item -LiteralPath $_ -Force -ErrorAction SilentlyContinue
 		}
 	}
-
-	$previousRunning = Stop-ProjectDbServices
 
 	Write-Status 48 'Installing ProjectDB files...'
 	New-Item -ItemType Directory -Force -Path $AppDir | Out-Null

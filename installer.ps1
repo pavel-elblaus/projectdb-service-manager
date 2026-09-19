@@ -118,7 +118,22 @@ function New-RoundedPath([Drawing.Rectangle]$Rect, [int]$Radius) {
 	return $path
 }
 
-function New-ModernButton([string]$Text, [bool]$Primary, [int]$Radius = 6) {
+function New-RightRoundedPath([Drawing.Rectangle]$Rect, [int]$Radius) {
+	$path = New-Object Drawing.Drawing2D.GraphicsPath
+	$diameter = [Math]::Max(2, [Math]::Min($Radius * 2, [Math]::Min($Rect.Width, $Rect.Height)))
+	$arc = New-Object Drawing.Rectangle($Rect.Right - $diameter, $Rect.Y, $diameter, $diameter)
+
+	$path.StartFigure()
+	$path.AddLine($Rect.X, $Rect.Y, $Rect.Right - $Radius, $Rect.Y)
+	$path.AddArc($arc, 270, 90)
+	$arc.Y = $Rect.Bottom - $diameter
+	$path.AddArc($arc, 0, 90)
+	$path.AddLine($Rect.Right - $Radius, $Rect.Bottom, $Rect.X, $Rect.Bottom)
+	$path.CloseFigure()
+	return $path
+}
+
+function New-ModernButton([string]$Text, [bool]$Primary, [int]$Radius = 6, [bool]$RightOnly = $false) {
 	$button = New-Object System.Windows.Forms.Button
 	$button.Text = $Text
 	$button.Size = New-Object Drawing.Size(112, 40)
@@ -130,7 +145,7 @@ function New-ModernButton([string]$Text, [bool]$Primary, [int]$Radius = 6) {
 	$button.TextAlign = [Drawing.ContentAlignment]::MiddleCenter
 	$button.UseCompatibleTextRendering = $false
 	$button.Padding = New-Object Windows.Forms.Padding(0)
-	$button.Tag = [pscustomobject]@{ Primary = $Primary; Hover = $false; Radius = $Radius }
+	$button.Tag = [pscustomobject]@{ Primary = $Primary; Hover = $false; Radius = $Radius; RightOnly = $RightOnly }
 
 	$button.Add_MouseEnter({
 		if ($this.Enabled) {
@@ -165,7 +180,11 @@ function New-ModernButton([string]$Text, [bool]$Primary, [int]$Radius = 6) {
 			$textColor = $UiText
 		}
 
-		$path = New-RoundedPath $rect ([int]$this.Tag.Radius)
+		$path = if ($this.Tag.RightOnly) {
+			New-RightRoundedPath $rect ([int]$this.Tag.Radius)
+		} else {
+			New-RoundedPath $rect ([int]$this.Tag.Radius)
+		}
 		$brush = New-Object Drawing.SolidBrush($back)
 		$pen = New-Object Drawing.Pen($border)
 		try {
@@ -279,7 +298,7 @@ if ($isUpdate) {
 	$dirInner.Cursor = [Windows.Forms.Cursors]::IBeam
 }
 
-$browseButton = New-ModernButton 'Browse...' $false 3
+$browseButton = New-ModernButton 'Browse...' $false 6 $true
 $browseButton.Location = New-Object Drawing.Point(456, 146)
 $browseButton.Size = New-Object Drawing.Size(112, 40)
 $form.Controls.Add($browseButton)

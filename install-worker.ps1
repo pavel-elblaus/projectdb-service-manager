@@ -203,7 +203,7 @@ function Get-ServiceId([string]$AppName) {
 	} finally {
 		$sha.Dispose()
 	}
-	return 'ProjectDB' + $sanitized + $hash
+	return 'PDB' + $sanitized + $hash
 }
 
 function Get-ServiceState([string]$ServiceId) {

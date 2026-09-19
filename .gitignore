@@ -1,0 +1,20 @@
+# Build output
+ProjectDB-Setup-*.exe
+*.pdb
+
+# Offline payload binaries (kept outside normal Git history)
+payload/WinSW-x64.exe
+payload/projectdb-*-win-x64.zip
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.user
+.vs/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

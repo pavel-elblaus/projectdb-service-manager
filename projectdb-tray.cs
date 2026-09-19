@@ -1203,7 +1203,7 @@ namespace ProjectDBTray
 			FormBorderStyle = FormBorderStyle.FixedDialog;
 			MaximizeBox = false;
 			MinimizeBox = false;
-			ClientSize = new Size(560, 414);
+			ClientSize = new Size(600, 414);
 			BackColor = Ui.Surface;
 			Font = new Font("Segoe UI", 9F);
 			AutoScaleMode = AutoScaleMode.Dpi;

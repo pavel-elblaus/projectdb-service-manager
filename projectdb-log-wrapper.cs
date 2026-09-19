@@ -28,7 +28,10 @@ namespace ProjectDBLogWrapper
 				return 2;
 			}
 
-			string baseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			string executableDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			string baseDirectory = String.Equals(new DirectoryInfo(executableDirectory).Name, "bin", StringComparison.OrdinalIgnoreCase)
+				? Directory.GetParent(executableDirectory).FullName
+				: executableDirectory;
 			string projectDbExe = Path.Combine(baseDirectory, "projectdb.exe");
 			if (!File.Exists(projectDbExe))
 			{

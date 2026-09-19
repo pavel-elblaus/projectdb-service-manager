@@ -813,7 +813,7 @@ namespace ProjectDBServiceControl
 				StringBuilder value = new StringBuilder();
 				for (int i = 0; i < 4; i++)
 					value.Append(hash[i].ToString("X2"));
-				return "ProjectDB" + sanitized + value.ToString();
+				return "PDB" + sanitized + value.ToString();
 			}
 		}
 

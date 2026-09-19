@@ -6,6 +6,8 @@ $version = (Get-Content -LiteralPath (Join-Path $root 'VERSION') -Raw).Trim()
 $project = Join-Path $payload 'projectdb-v3.4.0-win-x64.zip'
 $winsw = Join-Path $payload 'WinSW-x64.exe'
 $out = Join-Path $root ('ProjectDB-Setup-' + $version + '.exe')
+$icon = Join-Path $payload 'projectdb.ico'
+$resource = Join-Path $root 'setup_windows_amd64.syso'
 
 $projectUrl = 'https://github.com/pavel-elblaus/projectdb/releases/download/17.8.0/projectdb-v3.4.0-win-x64.zip'
 $winswUrl = 'https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe'
@@ -51,9 +53,15 @@ Push-Location $root
 try {
 	$env:GOOS = 'windows'
 	$env:GOARCH = 'amd64'
-	& $go.Source build -trimpath -ldflags '-H=windowsgui -s -w' -o $out .\setup.go
+
+	# Embed the ProjectDB icon into the Setup executable.
+	& $go.Source run 'github.com/akavel/rsrc@v0.10.2' -arch amd64 -ico $icon -o $resource
+	if ($LASTEXITCODE -ne 0) { throw "Windows resource generation failed with exit code $LASTEXITCODE" }
+
+	& $go.Source build -trimpath -ldflags '-H=windowsgui -s -w' -o $out .
 	if ($LASTEXITCODE -ne 0) { throw "Go build failed with exit code $LASTEXITCODE" }
 } finally {
+	Remove-Item -LiteralPath $resource -Force -ErrorAction SilentlyContinue
 	Pop-Location
 }
 

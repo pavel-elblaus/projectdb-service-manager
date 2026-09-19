@@ -1,6 +1,7 @@
 # Build output
 ProjectDB-Setup-*.exe
 *.pdb
+*.syso
 
 # Offline payload binaries (kept outside normal Git history)
 payload/WinSW-x64.exe

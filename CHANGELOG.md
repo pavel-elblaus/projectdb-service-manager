@@ -2,6 +2,8 @@
 
 ## Unreleased — 0.1.0-dev
 
+- Matched Setup button sizes, directory display, and progress indicator to the Service Manager UI.
+- Added ProjectDB icon resources for the Setup executable and taskbar identity.
 - Aligned the Setup UI styling and spacing with the Add ProjectDB application dialog.
 - Added a consistent component table with version, architecture and MIT license information.
 - Added the ProjectDB Service Manager MIT license.

@@ -35,6 +35,22 @@ Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Application]::EnableVisualStyles()
 
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+namespace ProjectDB.Setup
+{
+	public static class Taskbar
+	{
+		[DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+		public static extern int SetCurrentProcessExplicitAppUserModelID(string appID);
+	}
+}
+'@
+try { [void][ProjectDB.Setup.Taskbar]::SetCurrentProcessExplicitAppUserModelID('ProjectDB.ServiceManager.Setup') } catch {}
+
+
 $ProgramFiles64 = [Environment]::GetFolderPath([Environment+SpecialFolder]::ProgramFiles)
 $DefaultAppDir = Join-Path $ProgramFiles64 'ProjectDB'
 $UninstallKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProjectDB'
@@ -208,7 +224,7 @@ $form.TopMost = $true
 try { $form.Icon = New-Object Drawing.Icon($ProjectDbIcon) } catch {}
 $form.Add_Shown({ $form.Activate(); $form.BringToFront(); $form.TopMost = $false })
 
-$title = Add-Label $actionTitle 28 22 540 34 $UiText (New-Object Drawing.Font('Segoe UI Semibold', 15))
+$title = Add-Label $actionTitle 30 22 538 34 $UiText (New-Object Drawing.Font('Segoe UI Semibold', 15))
 
 $subtitleText = "Service Manager $ServiceManagerVersion  |  ProjectDB $ProjectDbVersion  |  Windows $ProjectDbArchitecture"
 $subtitle = Add-Label $subtitleText 32 58 536 24 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.8))
@@ -234,20 +250,34 @@ $dirInner.Size = New-Object Drawing.Size(412, 38)
 $dirInner.BackColor = $UiSurface
 $dirBorder.Controls.Add($dirInner)
 
-$installDirBox = New-Object System.Windows.Forms.TextBox
-$installDirBox.Text = $AppDir
-$installDirBox.BorderStyle = [Windows.Forms.BorderStyle]::None
-$installDirBox.Location = New-Object Drawing.Point(10, 9)
-$installDirBox.Size = New-Object Drawing.Size(392, 20)
-$installDirBox.Font = New-Object Drawing.Font('Segoe UI', 9.5)
-$installDirBox.BackColor = $UiSurface
-$installDirBox.ForeColor = $UiText
-$dirInner.Controls.Add($installDirBox)
+if ($isUpdate) {
+	$installDirBox = New-Object System.Windows.Forms.Label
+	$installDirBox.Text = $AppDir
+	$installDirBox.Location = New-Object Drawing.Point(10, 1)
+	$installDirBox.Size = New-Object Drawing.Size(392, 36)
+	$installDirBox.Font = New-Object Drawing.Font('Segoe UI', 9.5)
+	$installDirBox.BackColor = $UiSurface
+	$installDirBox.ForeColor = $UiText
+	$installDirBox.TextAlign = [Drawing.ContentAlignment]::MiddleLeft
+	$installDirBox.Cursor = [Windows.Forms.Cursors]::Default
+	$dirInner.Cursor = [Windows.Forms.Cursors]::Default
+	$dirInner.Controls.Add($installDirBox)
+} else {
+	$installDirBox = New-Object System.Windows.Forms.TextBox
+	$installDirBox.Text = $AppDir
+	$installDirBox.BorderStyle = [Windows.Forms.BorderStyle]::None
+	$installDirBox.Location = New-Object Drawing.Point(10, 9)
+	$installDirBox.Size = New-Object Drawing.Size(392, 20)
+	$installDirBox.Font = New-Object Drawing.Font('Segoe UI', 9.5)
+	$installDirBox.BackColor = $UiSurface
+	$installDirBox.ForeColor = $UiText
+	$dirInner.Controls.Add($installDirBox)
 
-$installDirBox.Add_GotFocus({ $dirBorder.BackColor = $UiAccent })
-$installDirBox.Add_LostFocus({ $dirBorder.BackColor = $UiBorder })
-$dirInner.Add_Click({ $installDirBox.Focus() })
-$dirInner.Cursor = [Windows.Forms.Cursors]::IBeam
+	$installDirBox.Add_GotFocus({ $dirBorder.BackColor = $UiAccent })
+	$installDirBox.Add_LostFocus({ $dirBorder.BackColor = $UiBorder })
+	$dirInner.Add_Click({ $installDirBox.Focus() })
+	$dirInner.Cursor = [Windows.Forms.Cursors]::IBeam
+}
 
 $browseButton = New-ModernButton 'Browse...' $false
 $browseButton.Location = New-Object Drawing.Point(456, 146)
@@ -319,30 +349,63 @@ Add-ComponentCell $WinSwLicense 452 97 70 27 $UiText ([Drawing.ContentAlignment]
 
 $licenseNote = Add-Label 'License information for bundled components is installed with the application.' 32 364 536 22 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.5))
 
-$progress = New-Object System.Windows.Forms.ProgressBar
+$progress = New-Object System.Windows.Forms.Panel
 $progress.Location = New-Object Drawing.Point(32, 397)
-$progress.Size = New-Object Drawing.Size(536, 14)
-$progress.Minimum = 0
-$progress.Maximum = 100
+$progress.Size = New-Object Drawing.Size(536, 10)
+$progress.BackColor = $UiSurface
+$progress.Tag = 0
+$progress.Add_Paint({
+	param($sender, $e)
+
+	$e.Graphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+	$trackRect = New-Object Drawing.Rectangle(0, 0, [Math]::Max(1, $this.Width - 1), [Math]::Max(1, $this.Height - 1))
+	$trackPath = New-RoundedPath $trackRect 4
+	$trackBrush = New-Object Drawing.SolidBrush($UiDivider)
+	try {
+		$e.Graphics.FillPath($trackBrush, $trackPath)
+	} finally {
+		$trackBrush.Dispose()
+		$trackPath.Dispose()
+	}
+
+	$percent = [Math]::Max(0, [Math]::Min(100, [int]$this.Tag))
+	if ($percent -gt 0) {
+		$fillWidth = [Math]::Max($this.Height, [int][Math]::Round($this.Width * $percent / 100.0))
+		$fillWidth = [Math]::Min($this.Width, $fillWidth)
+		$fillRect = New-Object Drawing.Rectangle(0, 0, [Math]::Max(1, $fillWidth - 1), [Math]::Max(1, $this.Height - 1))
+		$fillPath = New-RoundedPath $fillRect 4
+		$fillBrush = New-Object Drawing.SolidBrush($UiAccent)
+		try {
+			$e.Graphics.FillPath($fillBrush, $fillPath)
+		} finally {
+			$fillBrush.Dispose()
+			$fillPath.Dispose()
+		}
+	}
+})
 $form.Controls.Add($progress)
+
+function Set-ProgressValue([int]$Value) {
+	$progress.Tag = [Math]::Max(0, [Math]::Min(100, $Value))
+	$progress.Invalidate()
+}
 
 $status = Add-Label $readyText 32 419 536 30 $UiText
 
 $installButtonText = if ($isUpdate) { 'Update' } else { 'Install' }
 $installButton = New-ModernButton $installButtonText $true
-$installButton.Location = New-Object Drawing.Point(346, 454)
+$installButton.Location = New-Object Drawing.Point(336, 454)
 $form.Controls.Add($installButton)
 
 $closeButton = New-ModernButton 'Close' $false
-$closeButton.Location = New-Object Drawing.Point(466, 454)
-$closeButton.Size = New-Object Drawing.Size(102, 40)
+$closeButton.Location = New-Object Drawing.Point(456, 454)
+$closeButton.Size = New-Object Drawing.Size(112, 40)
 $closeButton.Add_Click({ $form.Close() })
 $form.Controls.Add($closeButton)
 $form.AcceptButton = $installButton
 $form.CancelButton = $closeButton
 
 if ($isUpdate) {
-	$installDirBox.ReadOnly = $true
 	Set-ButtonEnabled $browseButton $false $false
 }
 
@@ -390,7 +453,7 @@ function Finish-Error([string]$Message) {
 function Finish-Success($Result) {
 	$installationFinished = $true
 	$timer.Stop()
-	$progress.Value = 100
+	Set-ProgressValue 100
 	$status.ForeColor = [Drawing.Color]::FromArgb(0,110,0)
 	if ([string]$Result.mode -eq 'update') {
 		$status.Text = 'Update completed. Existing applications were preserved.'
@@ -415,7 +478,7 @@ $timer.Add_Tick({
 			if (-not [string]::IsNullOrWhiteSpace($json) -and $json -ne $lastStatusJson) {
 				$lastStatusJson = $json
 				$data = $json | ConvertFrom-Json
-				$progress.Value = [Math]::Max(0, [Math]::Min(100, [int]$data.percent))
+				Set-ProgressValue ([int]$data.percent)
 				$status.Text = [string]$data.text
 				if ([string]$data.state -eq 'success') {
 					Finish-Success $data.result
@@ -481,7 +544,7 @@ $installButton.Add_Click({
 	Set-ControlsEnabled $false
 	$status.ForeColor = $UiText
 	$status.Text = if ($isUpdate) { 'Starting update...' } else { 'Starting installation...' }
-	$progress.Value = 0
+	Set-ProgressValue 0
 
 	$psExe = Join-Path $PSHOME 'powershell.exe'
 	$arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $WorkerScript + '"' +

@@ -19,6 +19,18 @@ Default installation directory: `C:\Program Files\ProjectDB`.
 
 Setup detects an existing installation and switches between install and update mode. Application connection settings are configured after installation from ProjectDB Service Manager.
 
+## Installed layout
+
+ProjectDB itself remains in the installation root exactly as supplied by the ProjectDB release archive. Service Manager executables are stored separately in `bin` using lowercase file names:
+
+- `bin/projectdb-service-manager.exe`
+- `bin/projectdb-service-control.exe`
+- `bin/projectdb-log-wrapper.exe`
+- `bin/projectdb-uninstall.exe`
+- `bin/winsw.exe`
+
+Updates remove the older root-level Service Manager executables without renaming or relocating ProjectDB release files.
+
 ## Versioning
 
 The project follows semantic versioning for published versions:

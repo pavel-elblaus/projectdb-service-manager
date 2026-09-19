@@ -1,0 +1,43 @@
+name: Build test installer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Build offline installer
+        shell: pwsh
+        run: .\build-offline.ps1
+
+      - name: Prepare test artifact name
+        id: artifact
+        shell: pwsh
+        run: |
+          $version = (Get-Content -LiteralPath .\VERSION -Raw).Trim()
+          $source = "ProjectDB-Setup-$version.exe"
+          $target = "ProjectDB-Setup-$version-build.${{ github.run_number }}.exe"
+          Move-Item -LiteralPath $source -Destination $target
+          "file=$target" >> $env:GITHUB_OUTPUT
+          "name=ProjectDB-Setup-$version-build.${{ github.run_number }}" >> $env:GITHUB_OUTPUT
+
+      - name: Upload test build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ steps.artifact.outputs.file }}
+          if-no-files-found: error
+          retention-days: 14

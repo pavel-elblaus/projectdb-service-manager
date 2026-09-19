@@ -56,11 +56,7 @@ try {
 	$env:GOARCH = 'amd64'
 
 	# Embed Windows file properties and the ProjectDB icon into the Setup executable.
-	$numericVersion = $version -replace '-.*
-
-Write-Host "Built: $out"
-Get-FileHash -LiteralPath $out -Algorithm SHA256
-, ''
+	$numericVersion = $version -replace '-.*$', ''
 	$versionParts = @($numericVersion.Split('.') | ForEach-Object { [int]$_ })
 	while ($versionParts.Count -lt 4) { $versionParts += 0 }
 

@@ -54,7 +54,7 @@ var (
 
 const (
 	setupVersion       = "0.1.0-dev"
-	setupTitle         = "ProjectDB Setup v" + setupVersion
+	setupTitle         = "ProjectDB Setup " + setupVersion
 	swNormal           = 1
 	mbOK               = 0x00000000
 	mbIconError        = 0x00000010

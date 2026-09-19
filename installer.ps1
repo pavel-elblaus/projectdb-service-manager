@@ -45,6 +45,15 @@ $workerProcess = $null
 $lastStatusJson = $null
 $installationFinished = $false
 $ServiceManagerVersion = '0.1.0-dev'
+$SetupCaption = "ProjectDB Setup $ServiceManagerVersion"
+$ProjectDbVersion = '3.4.0'
+$ProjectDbArchitecture = 'x64'
+$ProjectDbLicense = 'MIT'
+$ServiceManagerArchitecture = 'x64'
+$ServiceManagerLicense = 'MIT'
+$WinSwVersion = '2.12.0'
+$WinSwArchitecture = 'x64'
+$WinSwLicense = 'MIT'
 
 # Palette matching ProjectDB Service Manager.
 $UiSurface = [Drawing.Color]::White
@@ -55,6 +64,7 @@ $UiAccent = [Drawing.Color]::FromArgb(34,160,171)
 $UiAccentHover = [Drawing.Color]::FromArgb(26,142,153)
 $UiDisabled = [Drawing.Color]::FromArgb(240,244,245)
 $UiDisabledText = [Drawing.Color]::FromArgb(155,167,171)
+$UiDivider = [Drawing.Color]::FromArgb(235,240,242)
 
 function Get-ExistingInstallDir() {
 	try {
@@ -142,12 +152,12 @@ $actionTitle = if ($isUpdate) { 'Update ProjectDB Service Manager' } else { 'Ins
 $readyText = if ($isUpdate) { 'Ready to update.' } else { 'Ready to install.' }
 
 $form = New-Object System.Windows.Forms.Form
-$form.Text = "ProjectDB Setup v$ServiceManagerVersion"
+$form.Text = $SetupCaption
 $form.StartPosition = 'CenterScreen'
 $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox = $false
 $form.MinimizeBox = $false
-$form.ClientSize = New-Object Drawing.Size(600, 487)
+$form.ClientSize = New-Object Drawing.Size(600, 512)
 $form.Font = New-Object Drawing.Font('Segoe UI', 9)
 $form.BackColor = $UiSurface
 $form.AutoScaleMode = [Windows.Forms.AutoScaleMode]::Dpi
@@ -158,7 +168,7 @@ $form.Add_Shown({ $form.Activate(); $form.BringToFront(); $form.TopMost = $false
 
 $title = Add-Label $actionTitle 28 22 540 34 $UiText (New-Object Drawing.Font('Segoe UI Semibold', 15))
 
-$subtitleText = "Service Manager v$ServiceManagerVersion  |  ProjectDB 3.4.0  |  Windows x64"
+$subtitleText = "Service Manager $ServiceManagerVersion  |  ProjectDB $ProjectDbVersion  |  Windows $ProjectDbArchitecture"
 $subtitle = Add-Label $subtitleText 32 58 536 24 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.8))
 
 $noteText = if ($isUpdate) {
@@ -197,55 +207,83 @@ $componentsLabel = Add-Label 'Installed components' 32 207 536 22 $UiText
 
 $componentsBorder = New-Object System.Windows.Forms.Panel
 $componentsBorder.Location = New-Object Drawing.Point(32, 232)
-$componentsBorder.Size = New-Object Drawing.Size(536, 101)
+$componentsBorder.Size = New-Object Drawing.Size(536, 126)
 $componentsBorder.BackColor = $UiBorder
 $form.Controls.Add($componentsBorder)
 
 $componentsPanel = New-Object System.Windows.Forms.Panel
 $componentsPanel.Location = New-Object Drawing.Point(1, 1)
-$componentsPanel.Size = New-Object Drawing.Size(534, 99)
+$componentsPanel.Size = New-Object Drawing.Size(534, 124)
 $componentsPanel.BackColor = $UiSurface
 $componentsBorder.Controls.Add($componentsPanel)
 
-function Add-ComponentLine([string]$Name, [string]$Details, [int]$Y) {
-	$nameLabel = New-Object System.Windows.Forms.Label
-	$nameLabel.Text = $Name
-	$nameLabel.Location = New-Object Drawing.Point(12, $Y)
-	$nameLabel.Size = New-Object Drawing.Size(330, 23)
-	$nameLabel.ForeColor = $UiText
-	$componentsPanel.Controls.Add($nameLabel)
-
-	$detailsLabel = New-Object System.Windows.Forms.Label
-	$detailsLabel.Text = $Details
-	$detailsLabel.Location = New-Object Drawing.Point(330, $Y)
-	$detailsLabel.Size = New-Object Drawing.Size(190, 23)
-	$detailsLabel.TextAlign = [Drawing.ContentAlignment]::MiddleRight
-	$detailsLabel.ForeColor = $UiMuted
-	$componentsPanel.Controls.Add($detailsLabel)
+function Add-ComponentCell([string]$Text, [int]$X, [int]$Y, [int]$Width, [int]$Height, $Color, $Alignment, $Font = $null) {
+	$label = New-Object System.Windows.Forms.Label
+	$label.Text = $Text
+	$label.Location = New-Object Drawing.Point($X, $Y)
+	$label.Size = New-Object Drawing.Size($Width, $Height)
+	$label.ForeColor = $Color
+	$label.TextAlign = $Alignment
+	if ($null -ne $Font) { $label.Font = $Font }
+	$componentsPanel.Controls.Add($label)
+	return $label
 }
 
-Add-ComponentLine 'ProjectDB' '3.4.0  |  x64' 8
-Add-ComponentLine 'ProjectDB Service Manager' ('v' + $ServiceManagerVersion) 37
-Add-ComponentLine 'Windows Service Wrapper (WinSW)' '2.12.0  |  x64  |  MIT' 66
+function Add-ComponentSeparator([int]$Y) {
+	$line = New-Object System.Windows.Forms.Panel
+	$line.Location = New-Object Drawing.Point(12, $Y)
+	$line.Size = New-Object Drawing.Size(510, 1)
+	$line.BackColor = $UiDivider
+	$componentsPanel.Controls.Add($line)
+}
 
-$licenseNote = Add-Label 'Third-party license notices are installed with the application.' 32 339 536 22 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.5))
+$headerFont = New-Object Drawing.Font('Segoe UI Semibold', 8.5)
+$rowFont = New-Object Drawing.Font('Segoe UI', 9)
+
+Add-ComponentCell 'Component' 12 7 252 24 $UiMuted ([Drawing.ContentAlignment]::MiddleLeft) $headerFont | Out-Null
+Add-ComponentCell 'Version' 264 7 100 24 $UiMuted ([Drawing.ContentAlignment]::MiddleCenter) $headerFont | Out-Null
+Add-ComponentCell 'Architecture' 364 7 88 24 $UiMuted ([Drawing.ContentAlignment]::MiddleCenter) $headerFont | Out-Null
+Add-ComponentCell 'License' 452 7 70 24 $UiMuted ([Drawing.ContentAlignment]::MiddleCenter) $headerFont | Out-Null
+
+Add-ComponentSeparator 32
+
+Add-ComponentCell 'ProjectDB' 12 35 252 27 $UiText ([Drawing.ContentAlignment]::MiddleLeft) $rowFont | Out-Null
+Add-ComponentCell $ProjectDbVersion 264 35 100 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
+Add-ComponentCell $ProjectDbArchitecture 364 35 88 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
+Add-ComponentCell $ProjectDbLicense 452 35 70 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
+
+Add-ComponentSeparator 63
+
+Add-ComponentCell 'ProjectDB Service Manager' 12 66 252 27 $UiText ([Drawing.ContentAlignment]::MiddleLeft) $rowFont | Out-Null
+Add-ComponentCell $ServiceManagerVersion 264 66 100 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
+Add-ComponentCell $ServiceManagerArchitecture 364 66 88 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
+Add-ComponentCell $ServiceManagerLicense 452 66 70 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
+
+Add-ComponentSeparator 94
+
+Add-ComponentCell 'Windows Service Wrapper (WinSW)' 12 97 252 27 $UiText ([Drawing.ContentAlignment]::MiddleLeft) $rowFont | Out-Null
+Add-ComponentCell $WinSwVersion 264 97 100 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
+Add-ComponentCell $WinSwArchitecture 364 97 88 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
+Add-ComponentCell $WinSwLicense 452 97 70 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
+
+$licenseNote = Add-Label 'License information for bundled components is installed with the application.' 32 364 536 22 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.5))
 
 $progress = New-Object System.Windows.Forms.ProgressBar
-$progress.Location = New-Object Drawing.Point(32, 372)
+$progress.Location = New-Object Drawing.Point(32, 397)
 $progress.Size = New-Object Drawing.Size(536, 14)
 $progress.Minimum = 0
 $progress.Maximum = 100
 $form.Controls.Add($progress)
 
-$status = Add-Label $readyText 32 394 536 30 $UiText
+$status = Add-Label $readyText 32 419 536 30 $UiText
 
 $installButtonText = if ($isUpdate) { 'Update' } else { 'Install' }
 $installButton = New-ModernButton $installButtonText $true
-$installButton.Location = New-Object Drawing.Point(346, 429)
+$installButton.Location = New-Object Drawing.Point(346, 454)
 $form.Controls.Add($installButton)
 
 $closeButton = New-ModernButton 'Close' $false
-$closeButton.Location = New-Object Drawing.Point(466, 429)
+$closeButton.Location = New-Object Drawing.Point(466, 454)
 $closeButton.Size = New-Object Drawing.Size(102, 36)
 $closeButton.Add_Click({ $form.Close() })
 $form.Controls.Add($closeButton)
@@ -296,7 +334,7 @@ function Finish-Error([string]$Message) {
 	$status.Text = $errorPrefix + $Message
 	$status.ForeColor = [Drawing.Color]::DarkRed
 	Set-ControlsEnabled $true
-	[Windows.Forms.MessageBox]::Show($form, ($Message + "`r`n`r`nLog: " + (Get-InstallerLog)), 'ProjectDB Setup - Error', 'OK', 'Error') | Out-Null
+	[Windows.Forms.MessageBox]::Show($form, ($Message + "`r`n`r`nLog: " + (Get-InstallerLog)), "$SetupCaption - Error", 'OK', 'Error') | Out-Null
 }
 
 function Finish-Success($Result) {
@@ -307,15 +345,15 @@ function Finish-Success($Result) {
 	if ([string]$Result.mode -eq 'update') {
 		$status.Text = 'Update completed. Existing applications were preserved.'
 		$installButton.Text = 'Updated'
-		$message = "ProjectDB Service Manager was updated successfully.`r`n`r`nInstallation directory: $($Result.appDir)`r`nProjectDB: 3.4.0 (x64)`r`nService Manager: v$ServiceManagerVersion`r`nWinSW: 2.12.0 (x64, MIT)`r`n`r`nRegistered applications were preserved and previously running services were restarted."
+		$message = "ProjectDB Service Manager was updated successfully.`r`n`r`nInstallation directory: $($Result.appDir)`r`nProjectDB: $ProjectDbVersion ($ProjectDbArchitecture, $ProjectDbLicense)`r`nService Manager: $ServiceManagerVersion ($ServiceManagerArchitecture, $ServiceManagerLicense)`r`nWinSW: $WinSwVersion ($WinSwArchitecture, $WinSwLicense)`r`n`r`nRegistered applications were preserved and previously running services were restarted."
 	} else {
 		$status.Text = 'Installation completed. Add applications from ProjectDB Service Manager.'
 		$installButton.Text = 'Installed'
-		$message = "ProjectDB Service Manager was installed successfully.`r`n`r`nInstallation directory: $($Result.appDir)`r`nProjectDB: 3.4.0 (x64)`r`nService Manager: v$ServiceManagerVersion`r`nWinSW: 2.12.0 (x64, MIT)`r`n`r`nOpen ProjectDB Service Manager and add the required application connections."
+		$message = "ProjectDB Service Manager was installed successfully.`r`n`r`nInstallation directory: $($Result.appDir)`r`nProjectDB: $ProjectDbVersion ($ProjectDbArchitecture, $ProjectDbLicense)`r`nService Manager: $ServiceManagerVersion ($ServiceManagerArchitecture, $ServiceManagerLicense)`r`nWinSW: $WinSwVersion ($WinSwArchitecture, $WinSwLicense)`r`n`r`nOpen ProjectDB Service Manager and add the required application connections."
 	}
 	Set-ButtonEnabled $installButton $false $true
 	Set-ButtonEnabled $closeButton $true $false
-	[Windows.Forms.MessageBox]::Show($form, $message, 'ProjectDB Setup', 'OK', 'Information') | Out-Null
+	[Windows.Forms.MessageBox]::Show($form, $message, $SetupCaption, 'OK', 'Information') | Out-Null
 }
 
 $timer = New-Object System.Windows.Forms.Timer
@@ -359,7 +397,7 @@ $form.Add_FormClosing({
 	param($sender, $e)
 	if ($null -ne $workerProcess -and -not $workerProcess.HasExited -and -not $installationFinished) {
 		$e.Cancel = $true
-		[Windows.Forms.MessageBox]::Show($form, 'Setup is in progress. Wait until it finishes before closing.', 'ProjectDB Setup', 'OK', 'Information') | Out-Null
+		[Windows.Forms.MessageBox]::Show($form, 'Setup is in progress. Wait until it finishes before closing.', $SetupCaption, 'OK', 'Information') | Out-Null
 	}
 })
 
@@ -368,16 +406,16 @@ $installButton.Add_Click({
 
 	$selectedDir = $installDirBox.Text.Trim()
 	if ([string]::IsNullOrWhiteSpace($selectedDir)) {
-		[Windows.Forms.MessageBox]::Show($form, 'Select an installation directory.', 'ProjectDB Setup', 'OK', 'Warning') | Out-Null
+		[Windows.Forms.MessageBox]::Show($form, 'Select an installation directory.', $SetupCaption, 'OK', 'Warning') | Out-Null
 		return
 	}
 	try { $selectedDir = [IO.Path]::GetFullPath($selectedDir).TrimEnd('\') }
 	catch {
-		[Windows.Forms.MessageBox]::Show($form, 'The installation directory is invalid.', 'ProjectDB Setup', 'OK', 'Warning') | Out-Null
+		[Windows.Forms.MessageBox]::Show($form, 'The installation directory is invalid.', $SetupCaption, 'OK', 'Warning') | Out-Null
 		return
 	}
 	if (-not [IO.Path]::IsPathRooted($selectedDir)) {
-		[Windows.Forms.MessageBox]::Show($form, 'Select an absolute installation directory.', 'ProjectDB Setup', 'OK', 'Warning') | Out-Null
+		[Windows.Forms.MessageBox]::Show($form, 'Select an absolute installation directory.', $SetupCaption, 'OK', 'Warning') | Out-Null
 		return
 	}
 	$installDirBox.Text = $selectedDir

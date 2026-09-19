@@ -52,6 +52,13 @@ The current development build is written as `ProjectDB-Setup-0.1.0-dev.exe`.
 
 GitHub Actions manual test builds add a CI build number to the downloadable artifact name without changing the product version. Release publishing is tag-driven, so ordinary test builds never create GitHub Releases.
 
+## License
+
+ProjectDB Service Manager is distributed under the MIT License. See [LICENSE](LICENSE).
+
+ProjectDB 3.4.0 is also distributed under the MIT License in its own repository.
+
 ## Third-party licenses
 
-Third-party notices are kept in `THIRD-PARTY-NOTICES.txt` and copied into the installation directory. WinSW 2.12.0 is distributed under the MIT License; the required notice is included there.
+
+Third-party notices are kept in `THIRD-PARTY-NOTICES.txt` and copied into the installation directory. WinSW 2.12.0 is distributed under the MIT License; its required notice is included there.

@@ -41,10 +41,14 @@ namespace ProjectDBServiceControl
 	internal static class Program
 	{
 		private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
-		private static readonly string BaseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+		private static readonly string ExecutableDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+		private static readonly string BaseDirectory = String.Equals(new DirectoryInfo(ExecutableDirectory).Name, "bin", StringComparison.OrdinalIgnoreCase)
+			? Directory.GetParent(ExecutableDirectory).FullName
+			: ExecutableDirectory;
+		private static readonly string BinDirectory = Path.Combine(BaseDirectory, "bin");
 		private static readonly string ServiceRoot = Path.Combine(BaseDirectory, "service");
-		private static readonly string CommonWinSw = Path.Combine(BaseDirectory, "bin", "winsw.exe");
-		private static readonly string LogWrapperExe = Path.Combine(BaseDirectory, "projectdb-log-wrapper.exe");
+		private static readonly string CommonWinSw = Path.Combine(BinDirectory, "winsw.exe");
+		private static readonly string LogWrapperExe = Path.Combine(BinDirectory, "projectdb-log-wrapper.exe");
 		private static readonly string LibraryDirectory = Path.Combine(BaseDirectory, "lib");
 		private static readonly string LibraryPath = Path.Combine(LibraryDirectory, "app.so");
 		private static readonly string LibraryMetadataPath = Path.Combine(LibraryDirectory, "app.so.meta.json");
@@ -582,7 +586,7 @@ namespace ProjectDBServiceControl
 
 			try
 			{
-				string[] managerProcesses = new string[] { "projectdb-tray", "ProjectDB-Service-Manager" };
+				string[] managerProcesses = new string[] { "projectdb-tray", "projectdb-service-manager" };
 				foreach (string processName in managerProcesses)
 				{
 					foreach (Process process in Process.GetProcessesByName(processName))

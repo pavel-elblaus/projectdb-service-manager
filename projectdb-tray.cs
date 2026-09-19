@@ -1206,7 +1206,7 @@ namespace ProjectDBTray
 			Text = "Add ProjectDB application";
 			Icon = icon;
 			StartPosition = FormStartPosition.CenterParent;
-			FormBorderStyle = FormBorderStyle.FixedDialog;
+			FormBorderStyle = FormBorderStyle.FixedSingle;
 			MaximizeBox = false;
 			MinimizeBox = false;
 			ClientSize = new Size(600, 414);

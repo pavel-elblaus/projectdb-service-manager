@@ -1270,8 +1270,8 @@ namespace ProjectDBTray
 			buttons.ColumnCount = 3;
 			buttons.RowCount = 1;
 			buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+			buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
 			buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 112F));
-			buttons.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 102F));
 			buttons.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
 			_register = Ui.Button("Register", true);

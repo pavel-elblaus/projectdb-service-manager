@@ -1204,12 +1204,27 @@ namespace ProjectDBTray
 		public string AppNameValue { get; private set; }
 		public string PasswordValue { get; private set; }
 
+		private const int WmNcCreate = 0x0081;
+
+		[DllImport("user32.dll")]
+		private static extern bool EnableNonClientDpiScaling(IntPtr hwnd);
+
+		protected override void WndProc(ref Message m)
+		{
+			if (m.Msg == WmNcCreate)
+			{
+				try { EnableNonClientDpiScaling(m.HWnd); }
+				catch { }
+			}
+			base.WndProc(ref m);
+		}
+
 		public AddApplicationForm(Icon icon)
 		{
 			Text = "Add ProjectDB application";
 			Icon = icon;
 			StartPosition = FormStartPosition.CenterParent;
-			FormBorderStyle = FormBorderStyle.FixedSingle;
+			FormBorderStyle = FormBorderStyle.FixedDialog;
 			MaximizeBox = false;
 			MinimizeBox = false;
 			ClientSize = new Size(520, 414);

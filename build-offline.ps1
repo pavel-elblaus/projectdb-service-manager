@@ -8,6 +8,7 @@ $winsw = Join-Path $payload 'WinSW-x64.exe'
 $out = Join-Path $root ('ProjectDB-Setup-' + $version + '.exe')
 $icon = Join-Path $payload 'projectdb.ico'
 $resource = Join-Path $root 'setup_windows_amd64.syso'
+$versionInfo = Join-Path $root 'versioninfo.setup.json'
 
 $projectUrl = 'https://github.com/pavel-elblaus/projectdb/releases/download/17.8.0/projectdb-v3.4.0-win-x64.zip'
 $winswUrl = 'https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe'
@@ -54,14 +55,70 @@ try {
 	$env:GOOS = 'windows'
 	$env:GOARCH = 'amd64'
 
-	# Embed the ProjectDB icon into the Setup executable.
-	& $go.Source run 'github.com/akavel/rsrc@v0.10.2' -arch amd64 -ico $icon -o $resource
-	if ($LASTEXITCODE -ne 0) { throw "Windows resource generation failed with exit code $LASTEXITCODE" }
+	# Embed Windows file properties and the ProjectDB icon into the Setup executable.
+	$numericVersion = $version -replace '-.*
+
+Write-Host "Built: $out"
+Get-FileHash -LiteralPath $out -Algorithm SHA256
+, ''
+	$versionParts = @($numericVersion.Split('.') | ForEach-Object { [int]$_ })
+	while ($versionParts.Count -lt 4) { $versionParts += 0 }
+
+	$versionObject = [ordered]@{
+		FixedFileInfo = [ordered]@{
+			FileVersion = [ordered]@{
+				Major = $versionParts[0]
+				Minor = $versionParts[1]
+				Patch = $versionParts[2]
+				Build = $versionParts[3]
+			}
+			ProductVersion = [ordered]@{
+				Major = $versionParts[0]
+				Minor = $versionParts[1]
+				Patch = $versionParts[2]
+				Build = $versionParts[3]
+			}
+			FileFlagsMask = '3f'
+			FileFlags = '00'
+			FileOS = '040004'
+			FileType = '01'
+			FileSubType = '00'
+		}
+		StringFileInfo = [ordered]@{
+			Comments = 'ProjectDB Service Manager setup package'
+			CompanyName = 'Pavel Elblaus'
+			FileDescription = 'ProjectDB Service Manager Setup'
+			FileVersion = ($versionParts -join '.')
+			InternalName = 'ProjectDB Setup'
+			LegalCopyright = 'Copyright (c) 2022-2026 Pavel Elblaus'
+			LegalTrademarks = ''
+			OriginalFilename = 'ProjectDB-Setup.exe'
+			PrivateBuild = $version
+			ProductName = 'ProjectDB Service Manager'
+			ProductVersion = $version
+			SpecialBuild = ''
+		}
+		VarFileInfo = [ordered]@{
+			Translation = [ordered]@{
+				LangID = '0409'
+				CharsetID = '04B0'
+			}
+		}
+		IconPath = $icon
+	}
+
+	$json = $versionObject | ConvertTo-Json -Depth 8
+	$utf8 = New-Object Text.UTF8Encoding($false)
+	[IO.File]::WriteAllText($versionInfo, $json, $utf8)
+
+	& $go.Source run 'github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.7.0' -64 -o $resource $versionInfo
+	if ($LASTEXITCODE -ne 0) { throw "Windows version resource generation failed with exit code $LASTEXITCODE" }
 
 	& $go.Source build -trimpath -ldflags '-H=windowsgui -s -w' -o $out .
 	if ($LASTEXITCODE -ne 0) { throw "Go build failed with exit code $LASTEXITCODE" }
 } finally {
 	Remove-Item -LiteralPath $resource -Force -ErrorAction SilentlyContinue
+	Remove-Item -LiteralPath $versionInfo -Force -ErrorAction SilentlyContinue
 	Pop-Location
 }
 

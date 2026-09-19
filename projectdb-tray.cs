@@ -1198,7 +1198,7 @@ namespace ProjectDBTray
 		public AddApplicationForm(Icon icon)
 		{
 			Text = "Add ProjectDB application";
-			Icon = CreateInsetWindowIcon(icon);
+			Icon = icon;
 			StartPosition = FormStartPosition.CenterParent;
 			FormBorderStyle = FormBorderStyle.FixedDialog;
 			MaximizeBox = false;
@@ -1311,13 +1311,6 @@ namespace ProjectDBTray
 			box.Margin = new Padding(5, 0, 0, 0);
 			box.UseSystemPasswordChar = password;
 			return box;
-		}
-
-		private static Icon CreateInsetWindowIcon(Icon source)
-		{
-			if (source == null) return null;
-			try { return new Icon(source, new Size(16, 16)); }
-			catch { return (Icon)source.Clone(); }
 		}
 
 		[DllImport("user32.dll")]

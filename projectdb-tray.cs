@@ -1356,6 +1356,7 @@ namespace ProjectDBTray
 	internal sealed class TrayApplicationContext : ApplicationContext
 	{
 		private readonly string _baseDirectory;
+		private readonly string _binDirectory;
 		private readonly string _serviceRoot;
 		private readonly string _controlHelperPath;
 		private readonly string _uninstallHelperPath;
@@ -1399,10 +1400,14 @@ namespace ProjectDBTray
 		public TrayApplicationContext(EventWaitHandle showEvent)
 		{
 			_showEvent = showEvent;
-			_baseDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			string executableDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			_baseDirectory = String.Equals(new DirectoryInfo(executableDirectory).Name, "bin", StringComparison.OrdinalIgnoreCase)
+				? Directory.GetParent(executableDirectory).FullName
+				: executableDirectory;
+			_binDirectory = Path.Combine(_baseDirectory, "bin");
 			_serviceRoot = Path.Combine(_baseDirectory, "service");
-			_controlHelperPath = Path.Combine(_baseDirectory, "projectdb-service-control.exe");
-			_uninstallHelperPath = Path.Combine(_baseDirectory, "ProjectDB-Uninstall.exe");
+			_controlHelperPath = Path.Combine(_binDirectory, "projectdb-service-control.exe");
+			_uninstallHelperPath = Path.Combine(_binDirectory, "projectdb-uninstall.exe");
 			_libraryDirectory = Path.Combine(_baseDirectory, "lib");
 			_libraryPath = Path.Combine(_libraryDirectory, "app.so");
 			_libraryMetadataPath = Path.Combine(_libraryDirectory, "app.so.meta.json");

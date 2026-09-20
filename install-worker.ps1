@@ -398,11 +398,8 @@ try {
 
 	if ($mode -eq 'install' -and [IO.Directory]::Exists($requestedDir)) {
 		try {
-			$enumerator = [IO.Directory]::EnumerateFileSystemEntries($requestedDir).GetEnumerator()
-			try {
-				if ($enumerator.MoveNext()) { throw 'The installation directory is not empty.' }
-			} finally {
-				if ($enumerator -is [IDisposable]) { $enumerator.Dispose() }
+			if ([IO.Directory]::GetFileSystemEntries($requestedDir).Length -gt 0) {
+				throw 'The installation directory is not empty.'
 			}
 		} catch {
 			if ($_.Exception.Message -eq 'The installation directory is not empty.') { throw }

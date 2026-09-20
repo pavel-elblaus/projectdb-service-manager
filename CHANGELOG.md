@@ -1,23 +1,12 @@
 # Changelog
 
-## Unreleased — 0.1.0-dev
+## Unreleased
 
-- Reworked application autostart: ProjectDB services now use the Manual startup type, while a scheduled SYSTEM startup task starts only applications enabled by Service Manager. Start/Stop intent now persists across Windows restarts without granting service-configuration rights to interactive users.
-- Fixed in-place updates of Service Manager helper executables by compiling to temporary output files before replacing existing binaries.
-- Added Windows file version metadata to the Setup executable, including product name, description, version, publisher and copyright information.
-- Set the main Service Manager window default and minimum size to 860x560; users can enlarge it as needed.
-- Application service identifiers use the short `PDB` prefix.
-- Fixed the custom Browse button paint path on Windows PowerShell 5.1 and corrected the centered-dot subtitle separator.
-- Moved Service Manager executables into `bin` with lowercase names while preserving ProjectDB release files in place.
-- Switched the Setup progress indicator to a square-corner style for a cleaner, more consistent layout.
-- Kept the standard 6 px button radius while making the Browse button square on the field-facing left side.
-- Smoothed the custom Setup progress indicator and aligned subtitle separators with Service Manager.
-- Matched Setup button sizes, directory display, and progress indicator to the Service Manager UI.
-- Added ProjectDB icon resources for the Setup executable and taskbar identity.
-- Aligned the Setup UI styling and spacing with the Add ProjectDB application dialog.
-- Added a consistent component table with version, architecture and MIT license information.
-- Added the ProjectDB Service Manager MIT license.
-- Imported the current ProjectDB Service Manager and offline installer source as the initial GitHub development baseline.
-- Switched the Service Manager development version from the former internal installer build number `v31` to `0.1.0-dev`.
-- Kept ProjectDB Core 3.4.0 and WinSW 2.12.0 as independently versioned bundled components.
-- Installer UI redesign is in progress.
+- Added an offline Windows x64 installer for ProjectDB Service Manager with bundled ProjectDB Core 3.4.0 and WinSW 2.12.0.
+- Added application registration and removal with isolated Windows services and per-application configuration and logs.
+- Added Start, Stop, Restart and Restart all controls with startup state preserved across Windows restarts.
+- Added application status, process information, recent structured activity and quick access to logs.
+- Added local library installation, replacement and removal with automatic restart of active applications.
+- Added in-place updates that preserve registered applications, local library overrides and the running state of applications.
+- Added Windows startup integration, shortcuts, installed-app registration and complete uninstall cleanup.
+- Added local signing of installed management components and bundled third-party license notices.

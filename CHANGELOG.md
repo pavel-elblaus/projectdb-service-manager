@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 — 2026-09-20
 
 - Added an offline Windows x64 installer for ProjectDB Service Manager with bundled ProjectDB Core 3.4.0 and WinSW 2.12.0.
 - Added application registration and removal with isolated Windows services and per-application configuration and logs.

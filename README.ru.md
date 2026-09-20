@@ -14,6 +14,20 @@ This description and guide are also available [in English](README.md).
 
 Разработка ProjectDB ведётся отдельно в [репозитории на GitHub](https://github.com/pavel-elblaus/projectdb). Подробнее о продукте — на сайте [projectdb.ru](https://projectdb.ru).
 
+## Скриншоты
+
+### Установщик
+
+<p>
+	<img src="docs/images/setup.png" alt="Установщик ProjectDB" width="602">
+</p>
+
+### ProjectDB Service Manager
+
+<p>
+	<img src="docs/images/service-manager.png" alt="ProjectDB Service Manager" width="846">
+</p>
+
 ## Зачем нужен ProjectDB Service Manager
 
 - **Одна установка для нескольких приложений.** Файлы ProjectDB используются совместно, а каждое зарегистрированное приложение имеет собственную конфигурацию и службу Windows.

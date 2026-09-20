@@ -12,7 +12,7 @@
 
 It provides a single interface for registering applications, starting and stopping them, monitoring their status and recent activity, opening logs, updating ProjectDB and managing a local `app.so` override. Service configuration and day-to-day management are handled by the application.
 
-ProjectDB is developed separately in the [ProjectDB repository](https://github.com/pavel-elblaus/projectdb). Learn more about the product at [projectdb.pro](https://projectdb.pro).
+ProjectDB is developed separately in its [GitHub repository](https://github.com/pavel-elblaus/projectdb). Learn more about the product at [projectdb.pro](https://projectdb.pro).
 
 ## Why ProjectDB Service Manager?
 

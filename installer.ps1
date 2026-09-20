@@ -596,6 +596,7 @@ $installButton.Add_Click({
 	$arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $WorkerScript + '"' +
 		' -Config "' + $configPath + '"' +
 		' -Status "' + $statusPath + '"' +
+		' -ServiceManagerVersion "' + $ServiceManagerVersion + '"' +
 		' -ManagerSource "' + $ManagerSource + '"' +
 		' -ServiceControlSource "' + $ServiceControlSource + '"' +
 		' -LogWrapperSource "' + $LogWrapperSource + '"' +

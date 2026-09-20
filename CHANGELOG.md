@@ -2,6 +2,7 @@
 
 ## Unreleased — 0.1.0-dev
 
+- Made explicit Start/Stop actions persistent across Windows restarts: manually stopped applications remain stopped, while Start re-enables delayed automatic startup.
 - Added Windows file version metadata to the Setup executable, including product name, description, version, publisher and copyright information.
 - Set the main Service Manager window default and minimum size to 860x560; users can enlarge it as needed.
 - Switched application service identifiers from the `ProjectDB` prefix to the shorter `PDB` prefix; legacy identifiers are shown with the shortened prefix in the UI.

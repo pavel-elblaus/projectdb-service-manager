@@ -53,6 +53,8 @@ namespace ProjectDBServiceControl
 		private static readonly string LibraryPath = Path.Combine(LibraryDirectory, "app.so");
 		private static readonly string LibraryMetadataPath = Path.Combine(LibraryDirectory, "app.so.meta.json");
 		private static readonly string LibraryHistoryDirectory = Path.Combine(LibraryDirectory, "history");
+		private static readonly string ServiceStateDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ProjectDB", "service-state");
+		private const string StartupTaskName = "\\ProjectDB\\ProjectDB Service Startup";
 		private const string PublisherSubject = "CN=ProjectDB Local Publisher";
 		private const string ProjectDbRegistryPath = "SOFTWARE\\ProjectDB";
 		private const string PublisherThumbprintValue = "SigningCertificateThumbprint";
@@ -61,7 +63,7 @@ namespace ProjectDBServiceControl
 		private static int Main(string[] args)
 		{
 			if (args == null || args.Length < 1)
-				return Fail("Usage: projectdb-service-control.exe <start|stop|restart|restart-all|add|remove|remove-all|install-library|remove-library|uninstall-all> [value]");
+				return Fail("Usage: projectdb-service-control.exe <start|stop|restart|restart-all|startup|add|remove|remove-all|install-library|remove-library|uninstall-all> [value]");
 
 			if (!IsAdministrator())
 				return RelaunchElevated(args);
@@ -78,6 +80,10 @@ namespace ProjectDBServiceControl
 				else if (action == "restart-all")
 				{
 					RestartAll();
+				}
+				else if (action == "startup")
+				{
+					StartConfiguredServices();
 				}
 				else if (action == "add")
 				{
@@ -174,12 +180,12 @@ namespace ProjectDBServiceControl
 				service.Refresh();
 				if (action == "start")
 				{
-					SetServiceStartMode(serviceId, true);
+					SetAutoStartState(serviceId, true);
 					Start(service);
 				}
 				else if (action == "stop")
 				{
-					SetServiceStartMode(serviceId, false);
+					SetAutoStartState(serviceId, false);
 					Stop(service);
 				}
 				else
@@ -191,15 +197,37 @@ namespace ProjectDBServiceControl
 			}
 		}
 
-		private static void SetServiceStartMode(string serviceId, bool automatic)
+		private static string GetAutoStartPath(string serviceId)
 		{
-			string sc = Path.Combine(Environment.SystemDirectory, "sc.exe");
-			string mode = automatic ? "delayed-auto" : "demand";
-			ProcessResult result = RunHidden(sc, "config " + QuoteArgument(serviceId) + " start= " + mode);
-			if (result.ExitCode != 0)
-				throw new InvalidOperationException(
-					"Could not update the Windows service startup type for " + serviceId + ".\r\n\r\n" +
-					(result.Error ?? String.Empty).Trim());
+			return Path.Combine(ServiceStateDirectory, serviceId + ".autostart");
+		}
+
+		private static void SetAutoStartState(string serviceId, bool enabled)
+		{
+			Directory.CreateDirectory(ServiceStateDirectory);
+			string path = GetAutoStartPath(serviceId);
+			if (enabled)
+				File.WriteAllText(path, "1", new UTF8Encoding(false));
+			else if (File.Exists(path))
+				File.Delete(path);
+		}
+
+		private static void StartConfiguredServices()
+		{
+			foreach (string serviceId in DiscoverServiceIds())
+			{
+				if (!File.Exists(GetAutoStartPath(serviceId)))
+					continue;
+				try
+				{
+					using (ServiceController service = new ServiceController(serviceId))
+						Start(service);
+				}
+				catch
+				{
+					// Startup continues with the remaining registered applications.
+				}
+			}
 		}
 
 		private static void RestartAll()
@@ -323,6 +351,7 @@ namespace ProjectDBServiceControl
 			if (install.ExitCode != 0)
 				throw new InvalidOperationException("WinSW could not register the service.\r\n\r\n" + install.Error.Trim());
 			GrantInteractiveServiceControl(serviceId);
+			SetAutoStartState(serviceId, true);
 
 			// Registration must finish promptly even when host/password are invalid.
 			// Start is best-effort; Service Manager will show the actual state and logs,
@@ -573,6 +602,7 @@ namespace ProjectDBServiceControl
 				WaitServiceRemoved(serviceId, 10);
 			}
 
+			SetAutoStartState(serviceId, false);
 			DeleteDirectory(serviceDir);
 			DeleteDirectory(Path.Combine(BaseDirectory, "tmp", "server", appName));
 			DeleteDirectory(Path.Combine(BaseDirectory, "log", "service", appName));
@@ -618,6 +648,7 @@ namespace ProjectDBServiceControl
 					RemoveApplication(appName);
 
 				RemoveStartupRegistration();
+				RemoveStartupTask();
 				RemoveManagerShortcuts();
 				RemoveUninstallRegistration();
 				RemoveLocalPublisherCertificate();
@@ -654,6 +685,22 @@ namespace ProjectDBServiceControl
 					key.DeleteValue("ProjectDB Service Manager", false);
 				}
 			}
+		}
+
+		private static void RemoveStartupTask()
+		{
+			try
+			{
+				string schtasks = Path.Combine(Environment.SystemDirectory, "schtasks.exe");
+				RunHidden(schtasks, "/Delete /TN " + QuoteArgument(StartupTaskName) + " /F");
+			}
+			catch { }
+			try
+			{
+				if (Directory.Exists(ServiceStateDirectory))
+					Directory.Delete(ServiceStateDirectory, true);
+			}
+			catch { }
 		}
 
 		private static void RemoveManagerShortcuts()

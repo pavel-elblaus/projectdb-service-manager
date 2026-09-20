@@ -88,18 +88,16 @@ function Get-ExistingInstallDir() {
 		$candidate = [string]$item.InstallLocation
 		if (-not [string]::IsNullOrWhiteSpace($candidate)) {
 			$manager = Join-Path $candidate 'bin\projectdb-service-manager.exe'
-			$legacyManager = Join-Path $candidate 'ProjectDB-Service-Manager.exe'
 			$projectDb = Join-Path $candidate 'projectdb.exe'
-			if ((Test-Path -LiteralPath $manager -PathType Leaf) -or (Test-Path -LiteralPath $legacyManager -PathType Leaf) -or (Test-Path -LiteralPath $projectDb -PathType Leaf)) {
+			if ((Test-Path -LiteralPath $manager -PathType Leaf) -or (Test-Path -LiteralPath $projectDb -PathType Leaf)) {
 				return $candidate.TrimEnd('\')
 			}
 		}
 	} catch {}
 
 	$defaultManager = Join-Path $DefaultAppDir 'bin\projectdb-service-manager.exe'
-	$defaultLegacyManager = Join-Path $DefaultAppDir 'ProjectDB-Service-Manager.exe'
 	$defaultProjectDb = Join-Path $DefaultAppDir 'projectdb.exe'
-	if ((Test-Path -LiteralPath $defaultManager -PathType Leaf) -or (Test-Path -LiteralPath $defaultLegacyManager -PathType Leaf) -or (Test-Path -LiteralPath $defaultProjectDb -PathType Leaf)) {
+	if ((Test-Path -LiteralPath $defaultManager -PathType Leaf) -or (Test-Path -LiteralPath $defaultProjectDb -PathType Leaf)) {
 		return $DefaultAppDir
 	}
 	return $null

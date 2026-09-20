@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
@@ -41,40 +40,6 @@ namespace ProjectDBServiceControl
 
 	internal static class Program
 	{
-		[StructLayout(LayoutKind.Sequential)]
-		private struct SystemHandleEntry
-		{
-			public IntPtr Object;
-			public IntPtr ProcessId;
-			public IntPtr Handle;
-			public uint GrantedAccess;
-			public ushort CreatorBackTraceIndex;
-			public ushort ObjectTypeIndex;
-			public uint HandleAttributes;
-			public uint Reserved;
-		}
-
-		[DllImport("ntdll.dll")]
-		private static extern int NtQuerySystemInformation(int systemInformationClass, IntPtr systemInformation, int systemInformationLength, out int returnLength);
-
-		[DllImport("kernel32.dll", SetLastError = true)]
-		private static extern IntPtr OpenProcess(uint desiredAccess, bool inheritHandle, int processId);
-
-		[DllImport("kernel32.dll", SetLastError = true)]
-		private static extern bool DuplicateHandle(IntPtr sourceProcessHandle, IntPtr sourceHandle, IntPtr targetProcessHandle, out IntPtr targetHandle, uint desiredAccess, bool inheritHandle, uint options);
-
-		[DllImport("kernel32.dll")]
-		private static extern IntPtr GetCurrentProcess();
-
-		[DllImport("kernel32.dll", SetLastError = true)]
-		private static extern bool CloseHandle(IntPtr handle);
-
-		[DllImport("kernel32.dll")]
-		private static extern uint GetFileType(IntPtr handle);
-
-		[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-		private static extern uint GetFinalPathNameByHandle(IntPtr handle, StringBuilder path, uint pathLength, uint flags);
-
 		private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 		private static readonly string ExecutableDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 		private static readonly string BaseDirectory = String.Equals(new DirectoryInfo(ExecutableDirectory).Name, "bin", StringComparison.OrdinalIgnoreCase)
@@ -90,7 +55,6 @@ namespace ProjectDBServiceControl
 		private static readonly string LibraryHistoryDirectory = Path.Combine(LibraryDirectory, "history");
 		private static readonly string ProgramDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ProjectDB");
 		private static readonly string ServiceStateDirectory = Path.Combine(ProgramDataDirectory, "service-state");
-		private static readonly string CleanupLogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ProjectDB-uninstall-cleanup.log");
 		private const string StartupTaskName = "ProjectDB Service Startup";
 		private const string PublisherSubject = "CN=ProjectDB Local Publisher";
 		private const string ProjectDbRegistryPath = "SOFTWARE\\ProjectDB";
@@ -695,20 +659,6 @@ namespace ProjectDBServiceControl
 				RemoveLocalPublisherCertificate();
 				RemoveProjectDbRegistry();
 
-				try
-				{
-					File.WriteAllText(
-						CleanupLogPath,
-						DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " Uninstall cleanup diagnostics started." + Environment.NewLine +
-						"Uninstall PID=" + Process.GetCurrentProcess().Id.ToString() + Environment.NewLine +
-						"Working directory=" + Environment.CurrentDirectory + Environment.NewLine +
-						"Install directory=" + BaseDirectory + Environment.NewLine +
-						"ProgramData directory=" + ProgramDataDirectory + Environment.NewLine,
-						new UTF8Encoding(false));
-				}
-				catch { }
-				LogDirectoryHandleOwners(BaseDirectory);
-
 				MessageBox.Show("ProjectDB was uninstalled successfully.", "ProjectDB", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				ScheduleDirectoryRemoval(BaseDirectory);
 				ScheduleDirectoryRemoval(ProgramDataDirectory);
@@ -839,148 +789,30 @@ namespace ProjectDBServiceControl
 			catch { }
 		}
 
-		private static void LogDirectoryHandleOwners(string path)
-		{
-			IntPtr buffer = IntPtr.Zero;
-			try
-			{
-				int length = 1024 * 1024;
-				int needed;
-				int status;
-				while (true)
-				{
-					buffer = Marshal.AllocHGlobal(length);
-					status = NtQuerySystemInformation(64, buffer, length, out needed);
-					if (status == 0) break;
-					Marshal.FreeHGlobal(buffer);
-					buffer = IntPtr.Zero;
-					if (status != unchecked((int)0xC0000004))
-					{
-						AppendCleanupLog("Handle scan failed: NtQuerySystemInformation status=0x" + status.ToString("X8"));
-						return;
-					}
-					length = Math.Max(length * 2, needed + 65536);
-				}
-
-				long count = Marshal.ReadIntPtr(buffer).ToInt64();
-				int size = Marshal.SizeOf(typeof(SystemHandleEntry));
-				long offset = IntPtr.Size * 2L;
-				string target = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar);
-				HashSet<string> found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-				for (long i = 0; i < count; i++)
-				{
-					IntPtr entryPtr = new IntPtr(buffer.ToInt64() + offset + i * size);
-					SystemHandleEntry entry = (SystemHandleEntry)Marshal.PtrToStructure(entryPtr, typeof(SystemHandleEntry));
-					long pidValue = entry.ProcessId.ToInt64();
-					if (pidValue <= 0 || pidValue > Int32.MaxValue) continue;
-					int pid = (int)pidValue;
-
-					IntPtr processHandle = OpenProcess(0x0040 | 0x1000, false, pid);
-					if (processHandle == IntPtr.Zero) continue;
-					try
-					{
-						IntPtr duplicate;
-						if (!DuplicateHandle(processHandle, entry.Handle, GetCurrentProcess(), out duplicate, 0, false, 0x00000002))
-							continue;
-						try
-						{
-							if (GetFileType(duplicate) != 1) continue;
-							StringBuilder value = new StringBuilder(4096);
-							uint chars = GetFinalPathNameByHandle(duplicate, value, (uint)value.Capacity, 0);
-							if (chars == 0 || chars >= value.Capacity) continue;
-
-							string handlePath = value.ToString();
-							if (handlePath.StartsWith(@"\\?\", StringComparison.Ordinal))
-								handlePath = handlePath.Substring(4);
-							handlePath = handlePath.TrimEnd(Path.DirectorySeparatorChar);
-
-							if (!String.Equals(handlePath, target, StringComparison.OrdinalIgnoreCase))
-								continue;
-
-							string processName = "unknown";
-							try
-							{
-								using (Process process = Process.GetProcessById(pid))
-									processName = process.ProcessName;
-							}
-							catch { }
-
-							string key = pid.ToString() + "|" + processName;
-							if (found.Add(key))
-								AppendCleanupLog("Directory handle owner: PID=" + pid.ToString() + "; process=" + processName + "; path=" + handlePath);
-						}
-						finally { CloseHandle(duplicate); }
-					}
-					finally { CloseHandle(processHandle); }
-				}
-
-				if (found.Count == 0)
-					AppendCleanupLog("Directory handle scan found no owner for: " + target);
-			}
-			catch (Exception ex)
-			{
-				AppendCleanupLog("Directory handle scan failed: " + ex.GetType().FullName + ": " + ex.Message);
-			}
-			finally
-			{
-				if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer);
-			}
-		}
-
-		private static void AppendCleanupLog(string text)
-		{
-			try
-			{
-				File.AppendAllText(
-					CleanupLogPath,
-					DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " " + text + Environment.NewLine,
-					new UTF8Encoding(false));
-			}
-			catch { }
-		}
-
 		private static void ScheduleDirectoryRemoval(string path)
 		{
 			string escapedPath = path.Replace("'", "''");
-			string escapedLog = CleanupLogPath.Replace("'", "''");
 			int parentProcessId = Process.GetCurrentProcess().Id;
 			string script =
 				"$p='" + escapedPath + "';" +
-				"$log='" + escapedLog + "';" +
 				"$prefix=$p.TrimEnd('\\')+'\\';" +
 				"$parent=" + parentProcessId.ToString() + ";" +
-				"function Log([string]$m){try{[IO.File]::AppendAllText($log,((Get-Date).ToString('yyyy-MM-dd HH:mm:ss.fff')+' ['+$p+'] '+$m+[Environment]::NewLine),(New-Object Text.UTF8Encoding($false)))}catch{}};" +
-				"Log ('cleanup process started; PID='+$PID+'; parent='+$parent+'; cwd='+[Environment]::CurrentDirectory);" +
-				"$parentExited=$false;" +
 				"for($w=0;$w -lt 120;$w++){" +
-				"if(-not (Get-Process -Id $parent -ErrorAction SilentlyContinue)){$parentExited=$true;break};" +
+				"if(-not (Get-Process -Id $parent -ErrorAction SilentlyContinue)){break};" +
 				"Start-Sleep -Milliseconds 250" +
 				"};" +
-				"Log ('parent exited='+$parentExited+'; directory exists='+[IO.Directory]::Exists($p));" +
 				"for($i=0;$i -lt 60 -and [IO.Directory]::Exists($p);$i++){" +
-				"Log ('delete attempt '+($i+1));" +
 				"try{" +
 				"Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object {" +
 				"$exe=$_.ExecutablePath;" +
 				"if($exe -and $exe.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)){" +
-				"Log ('residual process PID='+$_.ProcessId+'; name='+$_.Name+'; exe='+$exe);" +
-				"try{Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop;Log ('stopped PID='+$_.ProcessId)}catch{Log ('could not stop PID='+$_.ProcessId+'; '+$_.Exception.GetType().FullName+': '+$_.Exception.Message)}" +
+				"Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue" +
 				"}" +
 				"}" +
-				"}catch{Log ('process enumeration failed; '+$_.Exception.GetType().FullName+': '+$_.Exception.Message)};" +
-				"try{" +
-				"$entries=@([IO.Directory]::EnumerateFileSystemEntries($p));" +
-				"Log ('entries before delete='+$entries.Count);" +
-				"[IO.Directory]::Delete($p,$true);" +
-				"Log 'Directory.Delete returned successfully'" +
-				"}catch{" +
-				"$e=$_.Exception;" +
-				"Log ('Directory.Delete failed; type='+$e.GetType().FullName+'; hresult=0x'+$e.HResult.ToString('X8')+'; message='+$e.Message)" +
-				"};" +
+				"}catch{};" +
+				"try{[IO.Directory]::Delete($p,$true)}catch{};" +
 				"if([IO.Directory]::Exists($p)){Start-Sleep -Milliseconds 500}" +
-				"};" +
-				"Log ('cleanup finished; directory exists='+[IO.Directory]::Exists($p));";
+				"}";
 			string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
 			ProcessStartInfo psi = new ProcessStartInfo();
 			psi.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");

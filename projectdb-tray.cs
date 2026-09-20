@@ -1805,7 +1805,7 @@ namespace ProjectDBTray
 				ProcessStartInfo psi = new ProcessStartInfo();
 				psi.FileName = helper;
 				psi.Arguments = "uninstall-all";
-				psi.WorkingDirectory = _baseDirectory;
+				psi.WorkingDirectory = Path.GetTempPath();
 				psi.UseShellExecute = true;
 				psi.Verb = "runas";
 				psi.WindowStyle = ProcessWindowStyle.Hidden;

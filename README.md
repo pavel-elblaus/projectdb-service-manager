@@ -18,15 +18,11 @@ ProjectDB is developed separately in its [GitHub repository](https://github.com/
 
 ### Setup
 
-<p>
-	<img src="docs/images/setup.png" alt="ProjectDB Setup" width="602">
-</p>
+![ProjectDB Setup](docs/images/setup.webp)
 
 ### ProjectDB Service Manager
 
-<p>
-	<img src="docs/images/service-manager.png" alt="ProjectDB Service Manager" width="846">
-</p>
+![ProjectDB Service Manager](docs/images/service-manager.webp)
 
 ## Why ProjectDB Service Manager?
 

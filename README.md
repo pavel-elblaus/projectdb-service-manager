@@ -8,53 +8,41 @@
 
 Описание и руководство также доступны [на русском языке](README.ru.md).
 
-**ProjectDB Service Manager** is a Windows desktop application for installing ProjectDB and running one or more ProjectDB applications as native Windows services.
+**ProjectDB Service Manager** is a Windows desktop application for installing ProjectDB and managing one or more ProjectDB applications as Windows services.
 
-It provides a single graphical interface for registering applications, starting and stopping them, viewing their status and recent activity, opening logs, updating the local ProjectDB runtime and managing a local `app.so` override. No manual service creation, WinSW configuration or `sc.exe` commands are required.
+It provides a single interface for registering applications, starting and stopping them, monitoring their status and recent activity, opening logs, updating ProjectDB and managing a local `app.so` override. Service configuration and day-to-day management are handled by the application.
 
-ProjectDB itself is available at [github.com/pavel-elblaus/projectdb](https://github.com/pavel-elblaus/projectdb) and [projectdb.pro](https://projectdb.pro).
+ProjectDB is developed separately and is available at [github.com/pavel-elblaus/projectdb](https://github.com/pavel-elblaus/projectdb) and [projectdb.pro](https://projectdb.pro).
 
-## Why use ProjectDB Service Manager?
+## Why ProjectDB Service Manager?
 
-A regular ProjectDB Windows archive can run an application directly. ProjectDB Service Manager adds the Windows service lifecycle and a convenient management layer around it.
+- **One installation for multiple applications.** ProjectDB files are shared, while every registered application has its own configuration and Windows service.
+- **Reliable background operation.** Applications can start automatically with Windows. If an application is stopped manually in Service Manager, it stays stopped after a reboot until it is started again.
+- **Everything in one place.** Start, stop and restart applications, see their state and recent activity, and open their logs directly from the main window.
+- **Safe updates.** Setup detects an existing installation, preserves registered applications and a local `app.so`, updates ProjectDB and Service Manager, and restores applications that were running before the update.
+- **Convenient administration.** Applications can be added or removed independently, all running applications can be restarted together, and common actions are also available from the system tray.
 
-- **One installation, multiple applications.** ProjectDB binaries are shared, while every registered application gets its own configuration and Windows service.
-- **Automatic startup with persistent manual stop.** ProjectDB application services use the Windows `Manual` startup type. Service Manager stores the user's Start/Stop intent, and a SYSTEM startup task starts only applications that are enabled. If an application is explicitly stopped in Service Manager, it remains stopped after a Windows restart until the user starts it again.
-- **Simple service control.** Start, stop and restart applications from the GUI. Restart all currently running applications with one action.
-- **Status at a glance.** Each application card shows service state, service identifier, process ID and ProjectDB source/version information when available.
-- **Recent activity preview.** The latest structured log entry is visible directly in the application card, with warnings and errors highlighted.
-- **Fast access to logs.** Open the log directory for a specific application without searching through the installation tree.
-- **Safe application removal.** Remove one registered application or all registrations without deleting the shared ProjectDB installation.
-- **ProjectDB library management.** Select or remove a local `app.so` override directly from the manager. A locally selected library is preserved during ProjectDB updates.
-- **Tray integration.** The manager stays available from the Windows notification area and provides quick access to common actions.
-- **Install and update with the same Setup.** Setup detects an existing installation automatically, preserves registered applications and local `app.so`, updates the shared runtime and restarts services that were running before the update.
-- **Offline installation.** The published Setup executable contains the required ProjectDB Windows package and WinSW runtime; no downloads are required while installing.
-- **Integrity checks.** Embedded ProjectDB and WinSW payloads are verified against pinned SHA-256 hashes before installation.
-
-## Download
+## Download and installation
 
 Download the latest **Windows x64** installer from [GitHub Releases](https://github.com/pavel-elblaus/projectdb-service-manager/releases/latest):
 
 `ProjectDB-Setup-<version>.exe`
 
-The Setup executable requests administrator privileges because it installs files under Program Files, creates Windows services, configures service permissions and registers the application for Windows startup.
-
 The default installation directory is:
 
 `C:\Program Files\ProjectDB`
 
-## Installation
+To install:
 
-1. Download the latest Setup executable from [GitHub Releases](https://github.com/pavel-elblaus/projectdb-service-manager/releases/latest).
-2. Run `ProjectDB-Setup-<version>.exe`.
-3. Approve the Windows administrator prompt.
-4. Keep the default installation directory or choose another location.
-5. Click **Install**.
-6. After installation, ProjectDB Service Manager starts automatically.
+1. Run the downloaded Setup executable.
+2. Approve the Windows administrator prompt.
+3. Keep the default installation directory or choose another location.
+4. Click **Install**.
+5. After installation, ProjectDB Service Manager starts automatically.
 
-Setup installs the ProjectDB Windows runtime, ProjectDB Service Manager and the required Windows service wrapper.
+Setup contains everything required for installation, so no additional downloads are needed during setup.
 
-No application credentials are requested during installation. Applications are registered afterward from the Service Manager.
+Application connection details are configured after installation in ProjectDB Service Manager.
 
 ## Add an application
 
@@ -65,176 +53,81 @@ Enter:
 | Field | Description |
 | --- | --- |
 | **ProjectDB server address** | Configuration server used by the application. The default is `node.projectdb.pro`. |
-| **Application name** | ProjectDB application identifier, for example `SHELL`. |
+| **Application name** | ProjectDB application identifier, for example `DEMO`. |
 | **Access password** | Password used to obtain the application's ProjectDB configuration. |
 
 Click **Register**.
 
-The manager creates the application-specific configuration and Windows service, then adds it to the main window. ProjectDB binaries are reused; a separate ProjectDB copy is not created for every application.
+The application is registered as a separate Windows service and appears in the main Service Manager window. The installed ProjectDB files are shared between all registered applications.
 
 ## Manage applications
 
-Every registered application is displayed as a separate card.
-
-Available actions:
+Each registered application is displayed as a separate card.
 
 | Action | Description |
 | --- | --- |
-| **Start** | Starts the application's Windows service. |
-| **Restart** | Restarts a running application. |
-| **Stop** | Stops the application's Windows service. |
+| **Start** | Starts the application and enables automatic startup after a Windows reboot. |
+| **Restart** | Restarts a running application without changing its automatic-start state. |
+| **Stop** | Stops the application and keeps it stopped after a Windows reboot. |
 | **Logs** | Opens the application's log directory. |
-| **Remove** | Removes the application's Windows service, local service configuration and service logs. Shared ProjectDB binaries remain installed. |
+| **Remove** | Removes this application, its service configuration and service logs. The shared ProjectDB installation and other applications remain installed. |
 
 The top toolbar also provides:
 
 - **Add application** — register another ProjectDB application;
-- **Restart all** — restart all currently running registered applications;
-- **Remove all** — remove all registered applications while keeping the shared ProjectDB runtime and Service Manager installed.
-
-Service IDs use the short `PDB` prefix and include the application name plus a stable suffix to avoid collisions.
-
-ProjectDB application services intentionally use the Windows `Manual` startup type. The `ProjectDB Service Startup` scheduled task runs as SYSTEM during Windows startup and starts only applications whose autostart state is enabled by Service Manager. `Start` enables this state, `Stop` disables it, and `Restart` leaves it unchanged.
+- **Restart all** — restart all currently running applications;
+- **Remove all** — remove all registered applications while keeping ProjectDB Service Manager and the shared ProjectDB installation.
 
 ## Status and recent activity
 
-The application card shows the current Windows service state using a status indicator:
+The application card shows the current state with a color indicator:
 
 - green — running and initialized;
 - yellow — starting, stopping or waiting for initialization;
 - red — stopped;
 - gray — unavailable or unknown.
 
-For running applications, the card can also show the process ID and ProjectDB source/version information reported by the application.
+For a running application, the card can also show its process ID and ProjectDB source/version information.
 
-The **Last activity** area shows the latest structured log entry. Messages containing errors or failures are highlighted to make problems easier to notice.
+The **Last activity** area displays the latest structured log message. Warnings and errors are highlighted so problems are easier to notice.
 
 ## Manage `app.so`
 
 The **ProjectDB library** section lets you select a local `app.so` file.
 
-A selected local library is stored under the ProjectDB installation and takes priority over the normal ProjectDB release-library selection. The manager records metadata for the selected file and preserves the local override when Setup updates ProjectDB.
+A selected local library takes priority over the normal ProjectDB library selection and is preserved when ProjectDB is updated.
 
-Use **Remove** in the library section to delete the local override and return to the normal ProjectDB library selection behavior.
+Use **Remove** in the library section to remove the local override and return to the standard ProjectDB library selection.
 
 ## Updating
 
 Download a newer Setup executable and run it normally.
 
-When an existing installation is detected, Setup switches to **Update** mode automatically. During an update it:
+If ProjectDB Service Manager is already installed, Setup automatically switches to **Update** mode. It preserves registered applications and a local `app.so`, updates the installed components, and starts again the applications that were running before the update.
 
-1. verifies the embedded ProjectDB and WinSW payloads;
-2. remembers which ProjectDB services are running;
-3. stops Service Manager and active ProjectDB services;
-4. updates the shared ProjectDB runtime and Service Manager components;
-5. preserves registered applications and a local `app.so` override;
-6. updates service wrapper/runtime files and service commands when required;
-7. restarts the ProjectDB services that were running before the update;
-8. starts ProjectDB Service Manager again.
+Applications do not need to be removed or registered again after a normal update.
 
-You do not need to remove or re-register applications for a normal update.
+## Removing applications and uninstalling
 
-## Removing an application vs uninstalling ProjectDB
+**Remove** on an application card removes only that application. Other registered applications and the shared ProjectDB installation remain available.
 
-These are different operations.
+**Remove all** removes all registered applications but keeps ProjectDB Service Manager and ProjectDB installed.
 
-**Remove** on an application card deletes only that application's Windows service, service configuration and service logs. The shared ProjectDB installation and other applications remain available.
+To remove the complete installation, use **Uninstall ProjectDB** from the Service Manager tray menu or the standard Windows installed-apps interface.
 
-**Remove all** deletes all registered applications but keeps ProjectDB Service Manager and the shared ProjectDB runtime installed.
+## Administrator rights
 
-To remove the complete installation, use **Uninstall ProjectDB** from the Service Manager tray menu or the Windows installed-apps interface.
+Administrator privileges are required for installation, updates, application registration/removal and complete uninstallation.
 
-## Installed layout
-
-ProjectDB remains in the installation root exactly as supplied by the ProjectDB Windows release. Service Manager components are kept separately under `bin`.
-
-Typical layout:
-
-```text
-C:\Program Files\ProjectDB\
-├─ projectdb.exe
-├─ ... ProjectDB release files
-├─ projectdb.ico
-├─ THIRD-PARTY-NOTICES.txt
-├─ bin\
-│  ├─ projectdb-service-manager.exe
-│  ├─ projectdb-service-control.exe
-│  ├─ projectdb-log-wrapper.exe
-│  ├─ projectdb-uninstall.exe
-│  └─ winsw.exe
-├─ service\
-├─ log\
-├─ lib\
-└─ tmp\
-```
-
-ProjectDB release files are not renamed or relocated by Service Manager.
-
-## Security and service control
-
-Installation requires administrator privileges. After setup, ProjectDB services receive the Windows service permissions needed for the interactive user to query and control them from Service Manager without requiring an elevation prompt for every ordinary Start/Stop/Restart action.
-
-Locally built Service Manager helper executables are Authenticode-signed during installation with a local ProjectDB publisher certificate created on the machine and placed in the local trusted publisher stores.
-
-The offline installer verifies the SHA-256 hashes of its embedded ProjectDB and WinSW payloads before copying them into the installation.
-
-## Bundled components
-
-The current build includes:
-
-| Component | Version | Architecture | License |
-| --- | --- | --- | --- |
-| ProjectDB | 3.4.0 | x64 | MIT |
-| ProjectDB Service Manager | Current release | x64 | MIT |
-| Windows Service Wrapper (WinSW) | 2.12.0 | x64 | MIT |
-
-ProjectDB is maintained in the separate [ProjectDB repository](https://github.com/pavel-elblaus/projectdb).
-
-Third-party license notices are included in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt) and installed with the application.
-
-## Build from source
-
-Requirements:
-
-- Windows x64;
-- Windows PowerShell;
-- Go.
-
-Clone the repository and run:
-
-```powershell
-.\build-offline.ps1
-```
-
-The build script downloads the pinned ProjectDB Windows archive and WinSW binary when they are not already present in `payload`, verifies their SHA-256 hashes and builds a self-contained offline Setup executable.
-
-Large ProjectDB and WinSW payload binaries are intentionally not stored in Git.
-
-Manual CI builds are available through **Actions → Build test installer**. Test artifacts include the GitHub Actions build number in the file name and are not published as releases.
-
-Published releases are created from version tags by the release workflow.
-
-## Versioning
-
-Published versions follow semantic versioning.
-
-- stable releases: `1.0.0`, `1.1.0`, `2.0.0`, ...
-- optional release candidates: `1.0.0-rc.1`, ...
-- development builds may use a `-dev` suffix.
-
-CI build numbers identify test artifacts only and are not product versions.
-
-See [CHANGELOG.md](CHANGELOG.md) for project changes.
+Normal application control from the main window — including Start, Stop and Restart — does not require a separate administrator prompt each time.
 
 ## License
 
 ProjectDB Service Manager is distributed under the [MIT License](LICENSE).
 
-ProjectDB is also distributed under the MIT License in its own repository. WinSW retains its own MIT copyright notices; see [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).
+The installer also includes separate software projects that retain their own licenses and copyright notices:
 
-## Related links
+- [ProjectDB](https://github.com/pavel-elblaus/projectdb) — MIT License;
+- [Windows Service Wrapper (WinSW)](https://github.com/winsw/winsw) — MIT License.
 
-- [ProjectDB](https://github.com/pavel-elblaus/projectdb)
-- [ProjectDB website](https://projectdb.pro)
-- [ProjectDB Service Manager releases](https://github.com/pavel-elblaus/projectdb-service-manager/releases)
-- [Windows Service Wrapper (WinSW)](https://github.com/winsw/winsw)
+License and copyright notices for bundled software are included in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).

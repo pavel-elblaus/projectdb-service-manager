@@ -96,10 +96,6 @@ function Get-ExistingInstallDir() {
 		}
 	} catch {}
 
-	$defaultProjectDb = Join-Path $DefaultAppDir 'projectdb.exe'
-	if ([IO.File]::Exists($defaultProjectDb)) {
-		return $DefaultAppDir
-	}
 	return $null
 }
 

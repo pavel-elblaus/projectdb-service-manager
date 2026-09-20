@@ -4,13 +4,11 @@
 
 - Reworked application autostart: ProjectDB services now use the Manual startup type, while a scheduled SYSTEM startup task starts only applications enabled by Service Manager. Start/Stop intent now persists across Windows restarts without granting service-configuration rights to interactive users.
 - Fixed in-place updates of Service Manager helper executables by compiling to temporary output files before replacing existing binaries.
-- Made explicit Start/Stop actions persistent across Windows restarts: manually stopped applications remain stopped, while Start re-enables delayed automatic startup.
 - Added Windows file version metadata to the Setup executable, including product name, description, version, publisher and copyright information.
 - Set the main Service Manager window default and minimum size to 860x560; users can enlarge it as needed.
-- Switched application service identifiers from the `ProjectDB` prefix to the shorter `PDB` prefix; legacy identifiers are shown with the shortened prefix in the UI.
+- Application service identifiers use the short `PDB` prefix.
 - Fixed the custom Browse button paint path on Windows PowerShell 5.1 and corrected the centered-dot subtitle separator.
 - Moved Service Manager executables into `bin` with lowercase names while preserving ProjectDB release files in place.
-- Added update migration for obsolete root-level Service Manager executables.
 - Switched the Setup progress indicator to a square-corner style for a cleaner, more consistent layout.
 - Kept the standard 6 px button radius while making the Browse button square on the field-facing left side.
 - Smoothed the custom Setup progress indicator and aligned subtitle separators with Service Manager.

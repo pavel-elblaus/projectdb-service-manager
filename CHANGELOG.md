@@ -2,6 +2,7 @@
 
 ## Unreleased — 0.1.0-dev
 
+- Reworked application autostart: ProjectDB services now use the Manual startup type, while a scheduled SYSTEM startup task starts only applications enabled by Service Manager. Start/Stop intent now persists across Windows restarts without granting service-configuration rights to interactive users.
 - Fixed in-place updates of Service Manager helper executables by compiling to temporary output files before replacing existing binaries.
 - Made explicit Start/Stop actions persistent across Windows restarts: manually stopped applications remain stopped, while Start re-enables delayed automatic startup.
 - Added Windows file version metadata to the Setup executable, including product name, description, version, publisher and copyright information.

@@ -28,7 +28,7 @@ using System.Xml;
 [assembly: AssemblyFileVersion("0.1.0.0")]
 [assembly: AssemblyInformationalVersion("0.1.0-dev")]
 
-namespace ProjectDBTray
+namespace ProjectDBServiceManager
 {
 	internal sealed class ServiceInfo
 	{
@@ -1063,14 +1063,6 @@ namespace ProjectDBTray
 			if (busy) _libraryControlsAvailableWhileBusy = false;
 			SetStatusText(text);
 			bool libraryEnabled = !busy || _libraryControlsAvailableWhileBusy;
-			_libraryInstallButton.Enabled = !_busy && libraryEnabled;
-			_libraryRemoveButton.Enabled = !_busy && libraryEnabled && _libraryRemoveButton.Tag != null;
-		}
-
-		public void SetLibraryControlsAvailableWhileBusy(bool available)
-		{
-			_libraryControlsAvailableWhileBusy = available;
-			bool libraryEnabled = !_libraryBusy || available;
 			_libraryInstallButton.Enabled = !_busy && libraryEnabled;
 			_libraryRemoveButton.Enabled = !_busy && libraryEnabled && _libraryRemoveButton.Tag != null;
 		}

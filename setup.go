@@ -20,8 +20,8 @@ var installerPS []byte
 //go:embed install-worker.ps1
 var workerPS []byte
 
-//go:embed projectdb-tray.cs
-var traySource []byte
+//go:embed projectdb-service-manager.cs
+var managerSource []byte
 
 //go:embed projectdb-service-control.cs
 var serviceControlSource []byte
@@ -151,7 +151,7 @@ func main() {
 
 	psPath := filepath.Join(tmp, "installer.ps1")
 	workerPath := filepath.Join(tmp, "install-worker.ps1")
-	csPath := filepath.Join(tmp, "projectdb-tray.cs")
+	managerSourcePath := filepath.Join(tmp, "projectdb-service-manager.cs")
 	controlPath := filepath.Join(tmp, "projectdb-service-control.cs")
 	logWrapperPath := filepath.Join(tmp, "projectdb-log-wrapper.cs")
 	projectDbArchivePath := filepath.Join(tmp, "projectdb-v3.4.0-win-x64.zip")
@@ -166,7 +166,7 @@ func main() {
 	}{
 		{psPath, installerPS, "installer script"},
 		{workerPath, workerPS, "worker script"},
-		{csPath, traySource, "ProjectDB Service Manager source"},
+		{managerSourcePath, managerSource, "ProjectDB Service Manager source"},
 		{controlPath, serviceControlSource, "service control helper source"},
 		{logWrapperPath, logWrapperSource, "ProjectDB log wrapper source"},
 		{projectDbArchivePath, projectDbArchive, "embedded ProjectDB archive"},
@@ -187,7 +187,7 @@ func main() {
 		"-STA",
 		"-File", psPath,
 		"-WorkerScript", workerPath,
-		"-TraySource", csPath,
+		"-ManagerSource", managerSourcePath,
 		"-ServiceControlSource", controlPath,
 		"-LogWrapperSource", logWrapperPath,
 		"-ProjectDbArchive", projectDbArchivePath,

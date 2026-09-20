@@ -6,7 +6,7 @@ param(
 	[string]$Status,
 
 	[Parameter(Mandatory=$true)]
-	[string]$TraySource,
+	[string]$ManagerSource,
 
 	[Parameter(Mandatory=$true)]
 	[string]$ServiceControlSource,
@@ -36,7 +36,6 @@ try {
 	$OutputEncoding = $utf8
 } catch {}
 
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 Add-Type -AssemblyName System.ServiceProcess
 
 $ProjectDbArchiveSha256 = '3878c4eba1337e040aea30b9428b07ba6f6a062d7c518db489bcc47f85213758'
@@ -85,10 +84,6 @@ function Write-Status([int]$Percent, [string]$Text, [string]$State = 'running', 
 	# the UI retries on the next timer tick if it sees an incomplete JSON value.
 	[IO.File]::WriteAllText($Status, $json, (New-Object Text.UTF8Encoding($false)))
 	if ($State -eq 'running') { Add-InstallerLog $Text }
-}
-
-function Escape-Xml([string]$Text) {
-	return [Security.SecurityElement]::Escape($Text)
 }
 
 function Set-InstallPaths([string]$Directory) {
@@ -187,19 +182,6 @@ function Sign-ProjectDbBinary([string]$Path, $Certificate) {
 	Add-InstallerLog ('Signed and verified local component: {0}; signer={1}; thumbprint={2}' -f $Path, $subject, $Certificate.Thumbprint)
 }
 
-function Get-ServiceId([string]$AppName) {
-	$sanitized = ($AppName -replace '[^A-Za-z0-9]', '')
-	if ($sanitized.Length -gt 32) { $sanitized = $sanitized.Substring(0, 32) }
-	$sha = [Security.Cryptography.SHA256]::Create()
-	try {
-		$bytes = [Text.Encoding]::UTF8.GetBytes($AppName)
-		$hash = ([BitConverter]::ToString($sha.ComputeHash($bytes))).Replace('-', '').Substring(0, 8)
-	} finally {
-		$sha.Dispose()
-	}
-	return 'PDB' + $sanitized + $hash
-}
-
 function Get-ServiceState([string]$ServiceId) {
 	try { return (Get-Service -Name $ServiceId -ErrorAction Stop).Status.ToString() }
 	catch { return $null }
@@ -229,37 +211,6 @@ function Start-ServiceSafe([string]$ServiceId) {
 	} catch {
 		Add-InstallerLog ('Could not start service {0}: {1}' -f $ServiceId, $_.Exception.Message)
 	}
-}
-
-function Invoke-HiddenProcess([string]$FileName, [string[]]$Arguments) {
-	$psi = New-Object Diagnostics.ProcessStartInfo
-	$psi.FileName = $FileName
-	$psi.UseShellExecute = $false
-	$psi.CreateNoWindow = $true
-	$psi.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
-	$psi.RedirectStandardOutput = $true
-	$psi.RedirectStandardError = $true
-	if ($null -ne $Arguments -and $Arguments.Count -gt 0) {
-		$quoted = @()
-		foreach ($arg in $Arguments) {
-			if ($arg -match '[\s"]') { $quoted += ('"' + ($arg -replace '"','\"') + '"') }
-			else { $quoted += $arg }
-		}
-		$psi.Arguments = ($quoted -join ' ')
-	}
-	$p = New-Object Diagnostics.Process
-	$p.StartInfo = $psi
-	[void]$p.Start()
-	$stdout = $p.StandardOutput.ReadToEnd()
-	$stderr = $p.StandardError.ReadToEnd()
-	$p.WaitForExit()
-	$code = $p.ExitCode
-	$p.Dispose()
-	return [pscustomobject]@{ ExitCode=$code; StdOut=$stdout; StdErr=$stderr }
-}
-
-function Get-ServiceAutoStartFlag([string]$ServiceId) {
-	return Join-Path $ServiceStateDir ($ServiceId + '.autostart')
 }
 
 function Ensure-ServiceStateDirectory {
@@ -306,42 +257,6 @@ function Register-ProjectDbStartupTask {
 	}
 }
 
-function Grant-ServiceInteractiveControl([string]$ServiceId) {
-	if ([string]::IsNullOrWhiteSpace($ServiceId)) { return }
-	$sc = Join-Path $env:SystemRoot 'System32\sc.exe'
-	$show = Invoke-HiddenProcess $sc @('sdshow', $ServiceId)
-	if ($show.ExitCode -ne 0) { throw ('Could not read service security descriptor for {0}: {1}' -f $ServiceId, $show.StdErr.Trim()) }
-	$sddl = $null
-	foreach ($line in ($show.StdOut -split "`r?`n")) {
-		$value = $line.Trim()
-		if ($value.StartsWith('D:')) { $sddl = $value }
-	}
-	if ([string]::IsNullOrWhiteSpace($sddl)) { throw ('Windows returned an invalid service security descriptor for {0}.' -f $ServiceId) }
-	# Allow the currently interactive user session to query/start/stop/interrogate this ProjectDB service.
-	$ace = '(A;;LCRPWPLO;;;IU)'
-	if ($sddl.IndexOf($ace, [StringComparison]::OrdinalIgnoreCase) -ge 0) { return }
-	$sacl = $sddl.IndexOf('S:', [StringComparison]::Ordinal)
-	if ($sacl -ge 0) { $updated = $sddl.Insert($sacl, $ace) } else { $updated = $sddl + $ace }
-	$set = Invoke-HiddenProcess $sc @('sdset', $ServiceId, $updated)
-	if ($set.ExitCode -ne 0) { throw ('Could not grant interactive service control permission for {0}: {1}' -f $ServiceId, $set.StdErr.Trim()) }
-	Add-InstallerLog ('Granted non-elevated Start/Stop control for service {0}.' -f $ServiceId)
-}
-
-function Grant-AllProjectDbServiceControls {
-	if (-not (Test-Path -LiteralPath $ServiceRoot)) { return }
-	foreach ($dir in Get-ChildItem -LiteralPath $ServiceRoot -Directory -ErrorAction SilentlyContinue) {
-		$xmlPath = Join-Path $dir.FullName 'projectdb-service.xml'
-		if (-not (Test-Path -LiteralPath $xmlPath)) { continue }
-		try {
-			[xml]$doc = Get-Content -LiteralPath $xmlPath -Raw -Encoding UTF8
-			$id = [string]$doc.service.id
-			if (-not [string]::IsNullOrWhiteSpace($id) -and (Get-Service -Name $id -ErrorAction SilentlyContinue)) {
-				Grant-ServiceInteractiveControl $id
-			}
-		} catch { Add-InstallerLog ('Could not update service control permission in {0}: {1}' -f $dir.FullName, $_.Exception.Message) }
-	}
-}
-
 function Stop-ProjectDbServices {
 	$running = New-Object System.Collections.Generic.List[object]
 	if (-not (Test-Path -LiteralPath $ServiceRoot)) { return $running }
@@ -355,7 +270,7 @@ function Stop-ProjectDbServices {
 			if ([string]::IsNullOrWhiteSpace($id)) { continue }
 			$statusValue = Get-ServiceState $id
 			if ($statusValue -eq 'Running' -or $statusValue -eq 'StartPending' -or $statusValue -eq 'Paused') {
-				$running.Add([pscustomobject]@{ Id=$id; Directory=$dir.FullName })
+				$running.Add([pscustomobject]@{ Id=$id })
 				Stop-ServiceSafe $id
 			}
 		} catch {
@@ -365,9 +280,8 @@ function Stop-ProjectDbServices {
 	return $running
 }
 
-function Restart-PreviousServices($Services, [string]$TargetId) {
+function Restart-PreviousServices($Services) {
 	foreach ($item in $Services) {
-		if ($item.Id -eq $TargetId) { continue }
 		Start-ServiceSafe $item.Id
 	}
 }
@@ -418,30 +332,6 @@ function Compile-LogWrapper([string]$SourcePath, [string]$OutputPath, [string]$I
 	}
 }
 
-function Update-ExistingServiceCommands([string]$ExecutablePath) {
-	if (-not (Test-Path -LiteralPath $ServiceRoot)) { return }
-	foreach ($dir in Get-ChildItem -LiteralPath $ServiceRoot -Directory -ErrorAction SilentlyContinue) {
-		$xmlPath = Join-Path $dir.FullName 'projectdb-service.xml'
-		if (-not (Test-Path -LiteralPath $xmlPath)) { continue }
-		try {
-			[xml]$doc = Get-Content -LiteralPath $xmlPath -Raw -Encoding UTF8
-			$exeNode = $doc.SelectSingleNode('/service/executable')
-			$argsNode = $doc.SelectSingleNode('/service/arguments')
-			$workNode = $doc.SelectSingleNode('/service/workingdirectory')
-			if ($null -ne $exeNode) { $exeNode.InnerText = $ExecutablePath }
-			if ($null -ne $argsNode) { $argsNode.InnerText = $dir.Name }
-			if ($null -ne $workNode) { $workNode.InnerText = $AppDir }
-			$settings = New-Object System.Xml.XmlWriterSettings
-			$settings.Encoding = New-Object Text.UTF8Encoding($false)
-			$settings.Indent = $true
-			$writer = [System.Xml.XmlWriter]::Create($xmlPath, $settings)
-			try { $doc.Save($writer) } finally { $writer.Dispose() }
-			Add-InstallerLog ('Updated service command to cleaned-log wrapper: ' + $dir.Name)
-		} catch {
-			Add-InstallerLog ('Could not update service command for {0}: {1}' -f $dir.Name, $_.Exception.Message)
-		}
-	}
-}
 function Update-ExistingWinSwWrappers {
 	if (-not (Test-Path -LiteralPath $ServiceRoot)) { return }
 	foreach ($dir in Get-ChildItem -LiteralPath $ServiceRoot -Directory -ErrorAction SilentlyContinue) {
@@ -498,74 +388,6 @@ try {
 
 	$appExe = Join-Path $AppDir 'projectdb.exe'
 
-	# Recover a stale pre-release installation left by an incomplete uninstall.
-	$staleInstall = $false
-	if ($mode -eq 'install' -and
-		[String]::Equals($AppDir, (Join-Path $ProgramFiles64 'ProjectDB'), [StringComparison]::OrdinalIgnoreCase) -and
-		-not [IO.File]::Exists($appExe) -and
-		-not (Test-Path -LiteralPath $UninstallKey) -and
-		[IO.Directory]::Exists($AppDir)) {
-		try {
-			$installerLogRoot = Join-Path $AppDir 'log\installer'
-			foreach ($entry in [IO.Directory]::EnumerateFileSystemEntries($AppDir)) {
-				if ([String]::Equals($entry, (Join-Path $AppDir 'log'), [StringComparison]::OrdinalIgnoreCase)) {
-					$otherLogEntry = $false
-					foreach ($logEntry in [IO.Directory]::EnumerateFileSystemEntries((Join-Path $AppDir 'log'))) {
-						if (-not [String]::Equals($logEntry, $installerLogRoot, [StringComparison]::OrdinalIgnoreCase)) {
-							$otherLogEntry = $true
-							break
-						}
-					}
-					if (-not $otherLogEntry) { continue }
-				}
-				$staleInstall = $true
-				break
-			}
-		} catch {
-			# Inaccessible contents are treated as stale and recovered below.
-			$staleInstall = $true
-		}
-	}
-
-	if ($staleInstall) {
-		Add-InstallerLog 'Stale ProjectDB installation detected; starting cleanup.'
-
-		# Stop any orphaned Manager process before touching the installation directory.
-		$taskkill = Join-Path $env:SystemRoot 'System32\taskkill.exe'
-		$kill = Invoke-HiddenProcess $taskkill @('/F','/T','/IM','projectdb-service-manager.exe')
-		Add-InstallerLog ('Stale Manager process cleanup exit={0}; output={1}; error={2}' -f $kill.ExitCode, $kill.StdOut.Trim(), $kill.StdErr.Trim())
-		Start-Sleep -Milliseconds 500
-
-		$takeown = Join-Path $env:SystemRoot 'System32\takeown.exe'
-		$icacls = Join-Path $env:SystemRoot 'System32\icacls.exe'
-
-		$own = Invoke-HiddenProcess $takeown @('/F',$AppDir,'/A','/R','/D','Y')
-		Add-InstallerLog ('takeown stale directory exit={0}; output={1}; error={2}' -f $own.ExitCode, $own.StdOut.Trim(), $own.StdErr.Trim())
-
-		$acl = Invoke-HiddenProcess $icacls @($AppDir,'/inheritance:e','/grant:r','*S-1-5-32-544:(OI)(CI)F','/T','/C')
-		Add-InstallerLog ('icacls stale directory exit={0}; output={1}; error={2}' -f $acl.ExitCode, $acl.StdOut.Trim(), $acl.StdErr.Trim())
-
-		$removed = $false
-		for ($i = 0; $i -lt 20; $i++) {
-			try {
-				[IO.Directory]::Delete($AppDir, $true)
-				$removed = $true
-				break
-			} catch {
-				if ($i -eq 0) {
-					Add-InstallerLog ('Waiting for stale installation files to be released: ' + $_.Exception.Message)
-				}
-				Start-Sleep -Milliseconds 500
-			}
-		}
-
-		if (-not $removed -and [IO.Directory]::Exists($AppDir)) {
-			throw 'The previous ProjectDB installation could not be removed. Restart Windows and run Setup again.'
-		}
-
-		Add-InstallerLog 'Removed stale ProjectDB installation directory.'
-	}
-
 	$libraryDir = Join-Path $AppDir 'lib'
 	$libraryFile = Join-Path $libraryDir 'app.so'
 	$libraryMeta = Join-Path $libraryDir 'app.so.meta.json'
@@ -597,7 +419,7 @@ try {
 	}
 
 	Write-Status 38 'Stopping ProjectDB Service Manager and active ProjectDB services...'
-	$managerProcesses = @(Get-Process -Name 'projectdb-tray','projectdb-service-manager' -ErrorAction SilentlyContinue)
+	$managerProcesses = @(Get-Process -Name 'projectdb-service-manager' -ErrorAction SilentlyContinue)
 	$managerProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
 	foreach ($managerProcess in $managerProcesses) {
 		try { $managerProcess.WaitForExit(5000) } catch {}
@@ -632,19 +454,17 @@ try {
 	Compile-ServiceControl $ServiceControlSource $ServiceControlExe $InstalledIcon
 	Compile-LogWrapper $LogWrapperSource $LogWrapperExe $InstalledIcon
 	Copy-Item -LiteralPath $ServiceControlExe -Destination $UninstallExe -Force
-	Compile-Manager $TraySource $ManagerExe $InstalledIcon
+	Compile-Manager $ManagerSource $ManagerExe $InstalledIcon
 	Sign-ProjectDbBinary $ServiceControlExe $publisherCertificate
 	Sign-ProjectDbBinary $LogWrapperExe $publisherCertificate
 	Sign-ProjectDbBinary $UninstallExe $publisherCertificate
 	Sign-ProjectDbBinary $ManagerExe $publisherCertificate
-	Update-ExistingServiceCommands $LogWrapperExe
 	Ensure-ServiceStateDirectory
 	Register-ProjectDbStartupTask
 	$publisherCertificate = $null
 
 	$runPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'
 	New-Item -Path $runPath -Force | Out-Null
-	Remove-ItemProperty -Path $runPath -Name 'ProjectDB Tray' -ErrorAction SilentlyContinue
 	New-ItemProperty -Path $runPath -Name 'ProjectDB Service Manager' -Value ('"' + $ManagerExe + '"') -PropertyType String -Force | Out-Null
 
 	# Create standard launch shortcuts so the Manager can be reopened after it is exited.
@@ -676,18 +496,17 @@ try {
 	New-ItemProperty -Path $UninstallKey -Name 'InstallLocation' -Value $AppDir -PropertyType String -Force | Out-Null
 	New-ItemProperty -Path $UninstallKey -Name 'DisplayIcon' -Value $InstalledIcon -PropertyType String -Force | Out-Null
 	New-ItemProperty -Path $UninstallKey -Name 'UninstallString' -Value ('"' + $UninstallExe + '" uninstall-all') -PropertyType String -Force | Out-Null
-	New-ItemProperty -Path $UninstallKey -Name 'URLInfoAbout' -Value 'https://github.com/pavel-elblaus/projectdb' -PropertyType String -Force | Out-Null
+	New-ItemProperty -Path $UninstallKey -Name 'URLInfoAbout' -Value 'https://github.com/pavel-elblaus/projectdb-service-manager' -PropertyType String -Force | Out-Null
 	New-ItemProperty -Path $UninstallKey -Name 'ProjectDBVersion' -Value '3.4.0' -PropertyType String -Force | Out-Null
 	New-ItemProperty -Path $UninstallKey -Name 'Architecture' -Value 'x64' -PropertyType String -Force | Out-Null
 	New-ItemProperty -Path $UninstallKey -Name 'NoModify' -Value 1 -PropertyType DWord -Force | Out-Null
 	New-ItemProperty -Path $UninstallKey -Name 'NoRepair' -Value 1 -PropertyType DWord -Force | Out-Null
 
-	Write-Status 87 'Updating ProjectDB service permissions...'
-	Grant-AllProjectDbServiceControls
+	Write-Status 87 'Finalizing installation...'
 
 	if ($null -ne $previousRunning -and $previousRunning.Count -gt 0) {
 		Write-Status 92 'Restarting previously running ProjectDB services...'
-		Restart-PreviousServices $previousRunning ''
+		Restart-PreviousServices $previousRunning
 		Start-Sleep -Milliseconds 800
 		foreach ($item in $previousRunning) {
 			$state = Get-ServiceState $item.Id
@@ -711,7 +530,7 @@ try {
 }
 catch {
 	if ($null -ne $previousRunning) {
-		try { Restart-PreviousServices $previousRunning '' } catch {}
+		try { Restart-PreviousServices $previousRunning } catch {}
 	}
 	$errorText = $_.Exception.Message
 	Add-InstallerLog ('ERROR: ' + $_.Exception.ToString())

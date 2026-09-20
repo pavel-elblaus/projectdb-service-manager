@@ -3,7 +3,7 @@ param(
 	[string]$WorkerScript,
 
 	[Parameter(Mandatory=$true)]
-	[string]$TraySource,
+	[string]$ManagerSource,
 
 	[Parameter(Mandatory=$true)]
 	[string]$ServiceControlSource,
@@ -594,7 +594,7 @@ $installButton.Add_Click({
 	$arguments = '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File "' + $WorkerScript + '"' +
 		' -Config "' + $configPath + '"' +
 		' -Status "' + $statusPath + '"' +
-		' -TraySource "' + $TraySource + '"' +
+		' -ManagerSource "' + $ManagerSource + '"' +
 		' -ServiceControlSource "' + $ServiceControlSource + '"' +
 		' -LogWrapperSource "' + $LogWrapperSource + '"' +
 		' -ProjectDbArchive "' + $ProjectDbArchive + '"' +

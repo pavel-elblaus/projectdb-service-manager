@@ -64,7 +64,7 @@ namespace ProjectDBServiceControl
 		private static int Main(string[] args)
 		{
 			if (args == null || args.Length < 1)
-				return Fail("Usage: projectdb-service-control.exe <start|stop|restart|restart-all|startup|add|remove|remove-all|install-library|remove-library|uninstall-all> [value]");
+				return Fail("Usage: projectdb-service-control.exe <startup|add|remove|remove-all|install-library|remove-library|uninstall-all> [value]");
 
 			if (!IsAdministrator())
 				return RelaunchElevated(args);
@@ -72,17 +72,7 @@ namespace ProjectDBServiceControl
 			string action = args[0].ToLowerInvariant();
 			try
 			{
-				if (action == "start" || action == "stop" || action == "restart")
-				{
-					if (args.Length != 2 || String.IsNullOrWhiteSpace(args[1]))
-						throw new ArgumentException("Service ID is required.");
-					ControlService(args[1], action);
-				}
-				else if (action == "restart-all")
-				{
-					RestartAll();
-				}
-				else if (action == "startup")
+				if (action == "startup")
 				{
 					StartConfiguredServices();
 				}
@@ -174,30 +164,6 @@ namespace ProjectDBServiceControl
 			return "\"" + value.Replace("\"", "\\\"") + "\"";
 		}
 
-		private static void ControlService(string serviceId, string action)
-		{
-			using (ServiceController service = new ServiceController(serviceId))
-			{
-				service.Refresh();
-				if (action == "start")
-				{
-					SetAutoStartState(serviceId, true);
-					Start(service);
-				}
-				else if (action == "stop")
-				{
-					SetAutoStartState(serviceId, false);
-					Stop(service);
-				}
-				else
-				{
-					Stop(service);
-					service.Refresh();
-					Start(service);
-				}
-			}
-		}
-
 		private static string GetAutoStartPath(string serviceId)
 		{
 			return Path.Combine(ServiceStateDirectory, serviceId + ".autostart");
@@ -229,37 +195,6 @@ namespace ProjectDBServiceControl
 					// Startup continues with the remaining registered applications.
 				}
 			}
-		}
-
-		private static void RestartAll()
-		{
-			List<string> errors = new List<string>();
-			foreach (string serviceId in DiscoverServiceIds())
-			{
-				try
-				{
-					using (ServiceController service = new ServiceController(serviceId))
-					{
-						service.Refresh();
-						bool wasActive = service.Status == ServiceControllerStatus.Running ||
-							service.Status == ServiceControllerStatus.StartPending ||
-							service.Status == ServiceControllerStatus.Paused ||
-							service.Status == ServiceControllerStatus.PausePending ||
-							service.Status == ServiceControllerStatus.ContinuePending;
-						if (!wasActive)
-							continue;
-						Stop(service);
-						service.Refresh();
-						Start(service);
-					}
-				}
-				catch (Exception ex)
-				{
-					errors.Add(serviceId + ": " + ex.Message);
-				}
-			}
-			if (errors.Count > 0)
-				throw new InvalidOperationException("Some services could not be restarted:\r\n\r\n" + String.Join("\r\n", errors.ToArray()));
 		}
 
 		private static List<string> DiscoverServiceIds()
@@ -687,7 +622,6 @@ namespace ProjectDBServiceControl
 			{
 				if (key != null)
 				{
-					key.DeleteValue("ProjectDB Tray", false);
 					key.DeleteValue("ProjectDB Service Manager", false);
 				}
 			}

@@ -795,12 +795,21 @@ namespace ProjectDBServiceControl
 			int parentProcessId = Process.GetCurrentProcess().Id;
 			string script =
 				"$p='" + escapedPath + "';" +
+				"$prefix=$p.TrimEnd('\\')+'\\';" +
 				"$parent=" + parentProcessId.ToString() + ";" +
 				"for($w=0;$w -lt 120;$w++){" +
 				"if(-not (Get-Process -Id $parent -ErrorAction SilentlyContinue)){break};" +
 				"Start-Sleep -Milliseconds 250" +
 				"};" +
 				"for($i=0;$i -lt 60 -and [IO.Directory]::Exists($p);$i++){" +
+				"try{" +
+				"Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object {" +
+				"$exe=$_.ExecutablePath;" +
+				"if($exe -and $exe.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)){" +
+				"Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue" +
+				"}" +
+				"}" +
+				"}catch{};" +
 				"try{[IO.Directory]::Delete($p,$true)}catch{};" +
 				"if([IO.Directory]::Exists($p)){Start-Sleep -Milliseconds 500}" +
 				"}";

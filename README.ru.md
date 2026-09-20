@@ -117,6 +117,7 @@ ProjectDB Service Manager распространяется по [лицензи�
 В установщик также входят отдельные программные проекты, которые сохраняют собственные лицензии и copyright-уведомления:
 
 - [ProjectDB](https://github.com/pavel-elblaus/projectdb) — MIT License;
-- [Windows Service Wrapper (WinSW)](https://github.com/winsw/winsw) — MIT License.
+- [Windows Service Wrapper (WinSW)](https://github.com/winsw/winsw) — MIT License;
+- [Go runtime and standard library](https://go.dev/) — BSD 3-Clause License.
 
 Лицензионные и copyright-уведомления для включённого программного обеспечения находятся в [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt).

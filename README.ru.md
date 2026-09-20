@@ -12,7 +12,7 @@ This description and guide are also available [in English](README.md).
 
 В одном интерфейсе можно регистрировать приложения, запускать и останавливать их, следить за состоянием и последними событиями, открывать логи, обновлять ProjectDB и управлять локальной библиотекой `app.so`. Настройку служб и повседневное управление программа выполняет самостоятельно.
 
-ProjectDB развивается отдельно и доступен в репозитории [github.com/pavel-elblaus/projectdb](https://github.com/pavel-elblaus/projectdb) и на сайте [projectdb.pro](https://projectdb.pro).
+ProjectDB развивается отдельно в [репозитории ProjectDB](https://github.com/pavel-elblaus/projectdb). Подробнее о продукте — на сайте [projectdb.ru](https://projectdb.ru).
 
 ## Зачем нужен ProjectDB Service Manager
 
@@ -28,15 +28,11 @@ ProjectDB развивается отдельно и доступен в реп�
 
 `ProjectDB-Setup-<version>.exe`
 
-Каталог установки по умолчанию:
-
-`C:\Program Files\ProjectDB`
-
 Для установки:
 
 1. Запустите скачанный Setup.
 2. Подтвердите запрос прав администратора Windows.
-3. Оставьте каталог установки по умолчанию или выберите другой.
+3. Выберите каталог установки. По умолчанию ProjectDB устанавливается в `C:\Program Files\ProjectDB`.
 4. Нажмите **Install**.
 5. После завершения установки ProjectDB Service Manager запустится автоматически.
 

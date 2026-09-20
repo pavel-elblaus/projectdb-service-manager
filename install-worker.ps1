@@ -564,8 +564,6 @@ try {
 	}
 
 	$previousRunning = Stop-ProjectDbServices
-	Initialize-ServiceAutoStartState $previousRunning $serviceStateInitialized
-	Set-AllProjectDbServicesManual
 
 	# Remove the previous root-level layout only after service processes have exited.
 	@(
@@ -611,7 +609,9 @@ try {
 	Sign-ProjectDbBinary $UninstallExe $publisherCertificate
 	Sign-ProjectDbBinary $ManagerExe $publisherCertificate
 	Update-ExistingServiceCommands $LogWrapperExe
+	Initialize-ServiceAutoStartState $previousRunning $serviceStateInitialized
 	Register-ProjectDbStartupTask
+	Set-AllProjectDbServicesManual
 	$publisherCertificate = $null
 
 	$runPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'

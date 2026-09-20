@@ -575,6 +575,18 @@ $installButton.Add_Click({
 	}
 	$installDirBox.Text = $selectedDir
 
+	if (-not $isUpdate -and [IO.Directory]::Exists($selectedDir)) {
+		try {
+			if ([IO.Directory]::EnumerateFileSystemEntries($selectedDir).GetEnumerator().MoveNext()) {
+				[Windows.Forms.MessageBox]::Show($form, 'The selected installation directory is not empty. Choose an empty directory or remove its existing contents before installing.', $SetupCaption, 'OK', 'Warning') | Out-Null
+				return
+			}
+		} catch {
+			[Windows.Forms.MessageBox]::Show($form, 'The selected installation directory cannot be inspected. Choose another directory or check its permissions.', $SetupCaption, 'OK', 'Warning') | Out-Null
+			return
+		}
+	}
+
 	$configObject = [ordered]@{ appDir=$selectedDir; mode=$mode }
 	$configJson = $configObject | ConvertTo-Json -Compress
 	[IO.File]::WriteAllText($configPath, $configJson, (New-Object Text.UTF8Encoding($false)))

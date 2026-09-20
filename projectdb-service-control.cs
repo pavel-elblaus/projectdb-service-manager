@@ -633,14 +633,15 @@ namespace ProjectDBServiceControl
 
 			try
 			{
-				string[] managerProcesses = new string[] { "projectdb-tray", "projectdb-service-manager" };
-				foreach (string processName in managerProcesses)
+				foreach (Process process in Process.GetProcessesByName("projectdb-service-manager"))
 				{
-					foreach (Process process in Process.GetProcessesByName(processName))
+					try
 					{
-						try { process.Kill(); process.WaitForExit(3000); } catch { }
-						finally { process.Dispose(); }
+						process.Kill();
+						if (!process.WaitForExit(5000))
+							throw new InvalidOperationException("ProjectDB Service Manager did not exit during uninstall.");
 					}
+					finally { process.Dispose(); }
 				}
 
 				List<string> applications = DiscoverApplicationNames();
@@ -785,10 +786,19 @@ namespace ProjectDBServiceControl
 
 		private static void ScheduleDirectoryRemoval(string path)
 		{
-			string cmd = "/d /c ping 127.0.0.1 -n 3 >nul & rmdir /s /q \"" + path.Replace("\"", "") + "\"";
+			string escapedPath = path.Replace("'", "''");
+			string script =
+				"$p='" + escapedPath + "';" +
+				"Start-Sleep -Milliseconds 500;" +
+				"for($i=0;$i -lt 60 -and (Test-Path -LiteralPath $p);$i++){" +
+				"Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue;" +
+				"if(Test-Path -LiteralPath $p){Start-Sleep -Milliseconds 500}" +
+				"}";
+			string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
 			ProcessStartInfo psi = new ProcessStartInfo();
-			psi.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "cmd.exe");
-			psi.Arguments = cmd;
+			psi.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");
+			psi.Arguments = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand " + encoded;
+			psi.WorkingDirectory = Path.GetTempPath();
 			psi.UseShellExecute = false;
 			psi.CreateNoWindow = true;
 			psi.WindowStyle = ProcessWindowStyle.Hidden;

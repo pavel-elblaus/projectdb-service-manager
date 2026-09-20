@@ -14,14 +14,6 @@ It provides a single interface for registering applications, starting and stoppi
 
 ProjectDB is developed separately in its [GitHub repository](https://github.com/pavel-elblaus/projectdb). Learn more about the product at [projectdb.pro](https://projectdb.pro).
 
-## Screenshots
-
-### Setup
-
-![ProjectDB Setup](docs/images/setup.webp)
-
-### ProjectDB Service Manager
-
 ![ProjectDB Service Manager](docs/images/service-manager.webp)
 
 ## Why ProjectDB Service Manager?
@@ -37,6 +29,8 @@ ProjectDB is developed separately in its [GitHub repository](https://github.com/
 Download the latest **Windows x64** installer from [GitHub Releases](https://github.com/pavel-elblaus/projectdb-service-manager/releases/latest):
 
 `ProjectDB-Setup-<version>.exe`
+
+![ProjectDB Setup](docs/images/setup.webp)
 
 To install:
 

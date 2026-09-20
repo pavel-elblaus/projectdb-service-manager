@@ -173,9 +173,15 @@ namespace ProjectDBServiceControl
 			{
 				service.Refresh();
 				if (action == "start")
+				{
+					SetServiceStartMode(serviceId, true);
 					Start(service);
+				}
 				else if (action == "stop")
+				{
+					SetServiceStartMode(serviceId, false);
 					Stop(service);
+				}
 				else
 				{
 					Stop(service);
@@ -183,6 +189,17 @@ namespace ProjectDBServiceControl
 					Start(service);
 				}
 			}
+		}
+
+		private static void SetServiceStartMode(string serviceId, bool automatic)
+		{
+			string sc = Path.Combine(Environment.SystemDirectory, "sc.exe");
+			string mode = automatic ? "delayed-auto" : "demand";
+			ProcessResult result = RunHidden(sc, "config " + QuoteArgument(serviceId) + " start= " + mode);
+			if (result.ExitCode != 0)
+				throw new InvalidOperationException(
+					"Could not update the Windows service startup type for " + serviceId + ".\r\n\r\n" +
+					(result.Error ?? String.Empty).Trim());
 		}
 
 		private static void RestartAll()

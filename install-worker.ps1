@@ -332,36 +332,47 @@ function Restart-PreviousServices($Services, [string]$TargetId) {
 
 function Compile-Manager([string]$SourcePath, [string]$OutputPath, [string]$IconPath) {
 	$source = [IO.File]::ReadAllText($SourcePath, [Text.Encoding]::UTF8)
+	$tempOutput = $OutputPath + '.new.' + [Guid]::NewGuid().ToString('N') + '.exe'
 	$provider = New-Object Microsoft.CSharp.CSharpCodeProvider
-	$params = New-Object System.CodeDom.Compiler.CompilerParameters
-	$params.GenerateExecutable = $true
-	$params.GenerateInMemory = $false
-	$params.OutputAssembly = $OutputPath
-	$params.CompilerOptions = ('/target:winexe /optimize+ /win32icon:"' + $IconPath + '"')
-	@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.ServiceProcess.dll','System.Xml.dll','System.Web.Extensions.dll') | ForEach-Object { [void]$params.ReferencedAssemblies.Add($_) }
-	$result = $provider.CompileAssemblyFromSource($params, $source)
-	$provider.Dispose()
-	if ($result.Errors.HasErrors) {
-		$errors = ($result.Errors | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-		throw "Service Manager compilation failed:`r`n$errors"
+	try {
+		$params = New-Object System.CodeDom.Compiler.CompilerParameters
+		$params.GenerateExecutable = $true
+		$params.GenerateInMemory = $false
+		$params.OutputAssembly = $tempOutput
+		$params.CompilerOptions = ('/target:winexe /optimize+ /win32icon:"' + $IconPath + '"')
+		@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.ServiceProcess.dll','System.Xml.dll','System.Web.Extensions.dll') | ForEach-Object { [void]$params.ReferencedAssemblies.Add($_) }
+		$result = $provider.CompileAssemblyFromSource($params, $source)
+		if ($result.Errors.HasErrors) {
+			$errors = ($result.Errors | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+			throw "Service Manager compilation failed:`r`n$errors"
+		}
+		Copy-Item -LiteralPath $tempOutput -Destination $OutputPath -Force
+	} finally {
+		$provider.Dispose()
+		Remove-Item -LiteralPath $tempOutput -Force -ErrorAction SilentlyContinue
 	}
 }
 
-
 function Compile-LogWrapper([string]$SourcePath, [string]$OutputPath, [string]$IconPath) {
 	$source = [IO.File]::ReadAllText($SourcePath, [Text.Encoding]::UTF8)
+	$tempOutput = $OutputPath + '.new.' + [Guid]::NewGuid().ToString('N') + '.exe'
 	$provider = New-Object Microsoft.CSharp.CSharpCodeProvider
-	$params = New-Object System.CodeDom.Compiler.CompilerParameters
-	$params.GenerateExecutable = $true
-	$params.GenerateInMemory = $false
-	$params.OutputAssembly = $OutputPath
-	$params.CompilerOptions = ('/target:exe /optimize+ /win32icon:"' + $IconPath + '"')
-	@('System.dll','System.Core.dll') | ForEach-Object { [void]$params.ReferencedAssemblies.Add($_) }
-	$result = $provider.CompileAssemblyFromSource($params, $source)
-	$provider.Dispose()
-	if ($result.Errors.HasErrors) {
-		$errors = ($result.Errors | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-		throw "ProjectDB log wrapper compilation failed:`r`n$errors"
+	try {
+		$params = New-Object System.CodeDom.Compiler.CompilerParameters
+		$params.GenerateExecutable = $true
+		$params.GenerateInMemory = $false
+		$params.OutputAssembly = $tempOutput
+		$params.CompilerOptions = ('/target:exe /optimize+ /win32icon:"' + $IconPath + '"')
+		@('System.dll','System.Core.dll') | ForEach-Object { [void]$params.ReferencedAssemblies.Add($_) }
+		$result = $provider.CompileAssemblyFromSource($params, $source)
+		if ($result.Errors.HasErrors) {
+			$errors = ($result.Errors | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+			throw "ProjectDB log wrapper compilation failed:`r`n$errors"
+		}
+		Copy-Item -LiteralPath $tempOutput -Destination $OutputPath -Force
+	} finally {
+		$provider.Dispose()
+		Remove-Item -LiteralPath $tempOutput -Force -ErrorAction SilentlyContinue
 	}
 }
 
@@ -401,18 +412,24 @@ function Update-ExistingWinSwWrappers {
 
 function Compile-ServiceControl([string]$SourcePath, [string]$OutputPath, [string]$IconPath) {
 	$source = [IO.File]::ReadAllText($SourcePath, [Text.Encoding]::UTF8)
+	$tempOutput = $OutputPath + '.new.' + [Guid]::NewGuid().ToString('N') + '.exe'
 	$provider = New-Object Microsoft.CSharp.CSharpCodeProvider
-	$params = New-Object System.CodeDom.Compiler.CompilerParameters
-	$params.GenerateExecutable = $true
-	$params.GenerateInMemory = $false
-	$params.OutputAssembly = $OutputPath
-	$params.CompilerOptions = ('/target:winexe /optimize+ /win32icon:"' + $IconPath + '"')
-	@('System.dll','System.Core.dll','System.Windows.Forms.dll','System.ServiceProcess.dll','System.Xml.dll','System.Web.Extensions.dll') | ForEach-Object { [void]$params.ReferencedAssemblies.Add($_) }
-	$result = $provider.CompileAssemblyFromSource($params, $source)
-	$provider.Dispose()
-	if ($result.Errors.HasErrors) {
-		$errors = ($result.Errors | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
-		throw "Service control helper compilation failed:`r`n$errors"
+	try {
+		$params = New-Object System.CodeDom.Compiler.CompilerParameters
+		$params.GenerateExecutable = $true
+		$params.GenerateInMemory = $false
+		$params.OutputAssembly = $tempOutput
+		$params.CompilerOptions = ('/target:winexe /optimize+ /win32icon:"' + $IconPath + '"')
+		@('System.dll','System.Core.dll','System.Windows.Forms.dll','System.ServiceProcess.dll','System.Xml.dll','System.Web.Extensions.dll') | ForEach-Object { [void]$params.ReferencedAssemblies.Add($_) }
+		$result = $provider.CompileAssemblyFromSource($params, $source)
+		if ($result.Errors.HasErrors) {
+			$errors = ($result.Errors | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
+			throw "Service control helper compilation failed:`r`n$errors"
+		}
+		Copy-Item -LiteralPath $tempOutput -Destination $OutputPath -Force
+	} finally {
+		$provider.Dispose()
+		Remove-Item -LiteralPath $tempOutput -Force -ErrorAction SilentlyContinue
 	}
 }
 

@@ -61,34 +61,24 @@ The application is registered as a separate Windows service and appears in the m
 
 ## Manage applications
 
-Each registered application is displayed as a separate card.
+Each registered application is shown as a separate card. From the card you can start, restart or stop the application, open its logs, or remove its registration.
 
-| Action | Description |
-| --- | --- |
-| **Start** | Starts the application and enables automatic startup after a Windows reboot. |
-| **Restart** | Restarts a running application without changing its automatic-start state. |
-| **Stop** | Stops the application and keeps it stopped after a Windows reboot. |
-| **Logs** | Opens the application's log directory. |
-| **Remove** | Removes this application, its service configuration and service logs. The shared ProjectDB installation and other applications remain installed. |
+The top bar lets you add another application, restart all running applications, or remove all registered applications.
 
-The top toolbar also provides:
-
-- **Add application** — register another ProjectDB application;
-- **Restart all** — restart all currently running applications;
-- **Remove all** — remove all registered applications while keeping ProjectDB Service Manager and the shared ProjectDB installation.
+Startup state is preserved: an application stopped manually stays stopped after Windows restarts, while a running application starts automatically.
 
 ## Status and recent activity
 
-The application card shows the current state with a color indicator:
+Each application card shows its current state with a colored indicator:
 
-- green — running and initialized;
-- yellow — starting, stopping or waiting for initialization;
+- green — the application is running and initialized;
+- yellow — starting, stopping, or waiting for initialization;
 - red — stopped;
 - gray — unavailable or unknown.
 
-For a running application, the card can also show its process ID and ProjectDB source/version information.
+For a running application, the process PID and ProjectDB source/version information may also be shown.
 
-The **Last activity** area displays the latest structured log message. Warnings and errors are highlighted so problems are easier to notice.
+The **Last activity** area shows the latest structured log entry. Messages that appear to contain a warning or error are additionally highlighted in the Service Manager interface.
 
 ## Manage local library
 
@@ -116,9 +106,11 @@ To remove the complete installation, use **Uninstall ProjectDB** from the Servic
 
 ## Administrator rights
 
-Administrator privileges are required for installation, updates, application registration/removal and complete uninstallation.
+Setup requests administrator privileges when installing or updating ProjectDB Service Manager.
 
-Normal application control from the main window — including Start, Stop and Restart — does not require a separate administrator prompt each time.
+Normal application control — **Start**, **Stop**, **Restart**, and **Restart all** — does not require a separate UAC prompt.
+
+Actions that change Windows configuration or the shared ProjectDB installation may request administrator approval. These include adding or removing applications, managing the local library, and fully uninstalling ProjectDB.
 
 ## License
 

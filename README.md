@@ -2,7 +2,6 @@
 
 [![GitHub Release](https://img.shields.io/github/v/release/pavel-elblaus/projectdb-service-manager?sort=semver&style=flat-square)](https://github.com/pavel-elblaus/projectdb-service-manager/releases/latest)
 [![GitHub Downloads](https://img.shields.io/github/downloads/pavel-elblaus/projectdb-service-manager/total?style=flat-square)](https://github.com/pavel-elblaus/projectdb-service-manager/releases)
-[![Build](https://github.com/pavel-elblaus/projectdb-service-manager/actions/workflows/build.yml/badge.svg)](https://github.com/pavel-elblaus/projectdb-service-manager/actions/workflows/build.yml)
 [![License](https://img.shields.io/github/license/pavel-elblaus/projectdb-service-manager?style=flat-square)](LICENSE)
 [![Windows x64](https://img.shields.io/badge/platform-Windows%20x64-0078D4?style=flat-square)](https://github.com/pavel-elblaus/projectdb-service-manager/releases)
 

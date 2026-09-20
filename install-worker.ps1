@@ -80,9 +80,10 @@ function Write-Status([int]$Percent, [string]$Text, [string]$State = 'running', 
 	if ($null -ne $Result) { $obj.result = $Result }
 	if (-not [string]::IsNullOrWhiteSpace($ErrorText)) { $obj.error = $ErrorText }
 	$json = $obj | ConvertTo-Json -Depth 5 -Compress
-	$tmp = $Status + '.tmp.' + [Guid]::NewGuid().ToString('N')
-	[IO.File]::WriteAllText($tmp, $json, (New-Object Text.UTF8Encoding($false)))
-	Move-Item -LiteralPath $tmp -Destination $Status -Force
+
+	# The Setup UI may read this file at the same time. Write it in place;
+	# the UI retries on the next timer tick if it sees an incomplete JSON value.
+	[IO.File]::WriteAllText($Status, $json, (New-Object Text.UTF8Encoding($false)))
 	if ($State -eq 'running') { Add-InstallerLog $Text }
 }
 

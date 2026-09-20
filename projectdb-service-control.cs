@@ -831,8 +831,7 @@ namespace ProjectDBServiceControl
 				"\t<env name=\"PDB_METRIC\" value=\"service\"/>\r\n" +
 				"\t<env name=\"NO_COLOR\" value=\"1\"/>\r\n" +
 				"\t<env name=\"FORCE_COLOR\" value=\"0\"/>\r\n\r\n" +
-				"\t<startmode>Automatic</startmode>\r\n" +
-				"\t<delayedAutoStart>true</delayedAutoStart>\r\n\r\n" +
+				"\t<startmode>Manual</startmode>\r\n\r\n" +
 				"\t<stoptimeout>30 sec</stoptimeout>\r\n" +
 				"\t<stopparentprocessfirst>true</stopparentprocessfirst>\r\n\r\n" +
 				"\t<onfailure action=\"restart\" delay=\"3 sec\"/>\r\n" +

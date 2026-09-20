@@ -577,7 +577,7 @@ $installButton.Add_Click({
 
 	if (-not $isUpdate -and [IO.Directory]::Exists($selectedDir)) {
 		try {
-			if ([IO.Directory]::EnumerateFileSystemEntries($selectedDir).GetEnumerator().MoveNext()) {
+			if ([IO.Directory]::GetFileSystemEntries($selectedDir).Length -gt 0) {
 				[Windows.Forms.MessageBox]::Show($form, 'The selected installation directory is not empty. Choose an empty directory or remove its existing contents before installing.', $SetupCaption, 'OK', 'Warning') | Out-Null
 				return
 			}

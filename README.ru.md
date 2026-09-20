@@ -14,14 +14,6 @@ This description and guide are also available [in English](README.md).
 
 Разработка ProjectDB ведётся отдельно в [репозитории на GitHub](https://github.com/pavel-elblaus/projectdb). Подробнее о продукте — на сайте [projectdb.ru](https://projectdb.ru).
 
-## Скриншоты
-
-### Установщик
-
-![Установщик ProjectDB](docs/images/setup.webp)
-
-### ProjectDB Service Manager
-
 ![ProjectDB Service Manager](docs/images/service-manager.webp)
 
 ## Зачем нужен ProjectDB Service Manager
@@ -37,6 +29,8 @@ This description and guide are also available [in English](README.md).
 Скачайте последнюю версию для **Windows x64** в [GitHub Releases](https://github.com/pavel-elblaus/projectdb-service-manager/releases/latest):
 
 `ProjectDB-Setup-<version>.exe`
+
+![Установщик ProjectDB](docs/images/setup.webp)
 
 Для установки:
 

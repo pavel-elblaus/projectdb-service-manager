@@ -12,7 +12,7 @@
 
 It provides a single interface for registering applications, starting and stopping them, monitoring their status and recent activity, opening logs, updating ProjectDB and managing a local `app.so` override. Service configuration and day-to-day management are handled by the application.
 
-ProjectDB is developed separately and is available at [github.com/pavel-elblaus/projectdb](https://github.com/pavel-elblaus/projectdb) and [projectdb.pro](https://projectdb.pro).
+ProjectDB is developed separately in the [ProjectDB repository](https://github.com/pavel-elblaus/projectdb). Learn more about the product at [projectdb.pro](https://projectdb.pro).
 
 ## Why ProjectDB Service Manager?
 
@@ -28,15 +28,11 @@ Download the latest **Windows x64** installer from [GitHub Releases](https://git
 
 `ProjectDB-Setup-<version>.exe`
 
-The default installation directory is:
-
-`C:\Program Files\ProjectDB`
-
 To install:
 
 1. Run the downloaded Setup executable.
 2. Approve the Windows administrator prompt.
-3. Keep the default installation directory or choose another location.
+3. Choose the installation directory. By default, ProjectDB is installed to `C:\Program Files\ProjectDB`.
 4. Click **Install**.
 5. After installation, ProjectDB Service Manager starts automatically.
 

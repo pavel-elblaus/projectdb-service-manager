@@ -40,7 +40,7 @@ Add-Type -AssemblyName System.ServiceProcess
 
 $ProjectDbArchiveSha256 = '3878c4eba1337e040aea30b9428b07ba6f6a062d7c518db489bcc47f85213758'
 $WinSwSha256 = '05b82d46ad331cc16bdc00de5c6332c1ef818df8ceefcd49c726553209b3a0da'
-$ServiceManagerVersion = '0.1.0-dev'
+$ServiceManagerVersion = '__SERVICE_MANAGER_VERSION__'
 $ProgramFiles64 = [Environment]::GetFolderPath([Environment+SpecialFolder]::ProgramFiles)
 $AppDir = $null
 $ServiceRoot = $null

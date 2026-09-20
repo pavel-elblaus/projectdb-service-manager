@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
 	"os"
@@ -52,9 +53,13 @@ var (
 	procCloseHandle   = kernel32.NewProc("CloseHandle")
 )
 
+var (
+	setupVersion     = "dev"
+	setupFileVersion = "0.0.0.0"
+	setupTitle       = "ProjectDB Setup " + setupVersion
+)
+
 const (
-	setupVersion       = "0.1.0-dev"
-	setupTitle         = "ProjectDB Setup " + setupVersion
 	swNormal           = 1
 	mbOK               = 0x00000000
 	mbIconError        = 0x00000010
@@ -62,6 +67,12 @@ const (
 	createNoWindow     = 0x08000000
 	errorAlreadyExists = 183
 )
+
+func renderVersionedSource(data []byte) []byte {
+	data = bytes.ReplaceAll(data, []byte("__SERVICE_MANAGER_VERSION__"), []byte(setupVersion))
+	data = bytes.ReplaceAll(data, []byte("__SERVICE_MANAGER_FILE_VERSION__"), []byte(setupFileVersion))
+	return data
+}
 
 func ptr(s string) *uint16 {
 	p, _ := syscall.UTF16PtrFromString(s)
@@ -164,9 +175,9 @@ func main() {
 		data []byte
 		name string
 	}{
-		{psPath, installerPS, "installer script"},
-		{workerPath, workerPS, "worker script"},
-		{managerSourcePath, managerSource, "ProjectDB Service Manager source"},
+		{psPath, renderVersionedSource(installerPS), "installer script"},
+		{workerPath, renderVersionedSource(workerPS), "worker script"},
+		{managerSourcePath, renderVersionedSource(managerSource), "ProjectDB Service Manager source"},
 		{controlPath, serviceControlSource, "service control helper source"},
 		{logWrapperPath, logWrapperSource, "ProjectDB log wrapper source"},
 		{projectDbArchivePath, projectDbArchive, "embedded ProjectDB archive"},

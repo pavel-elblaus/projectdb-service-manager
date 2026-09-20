@@ -24,9 +24,9 @@ using System.Xml;
 [assembly: AssemblyProduct("ProjectDB Service Manager")]
 [assembly: AssemblyCompany("Pavel Elblaus")]
 [assembly: AssemblyCopyright("Copyright (c) 2022-2026 Pavel Elblaus")]
-[assembly: AssemblyVersion("0.1.0.0")]
-[assembly: AssemblyFileVersion("0.1.0.0")]
-[assembly: AssemblyInformationalVersion("0.1.0-dev")]
+[assembly: AssemblyVersion("__SERVICE_MANAGER_FILE_VERSION__")]
+[assembly: AssemblyFileVersion("__SERVICE_MANAGER_FILE_VERSION__")]
+[assembly: AssemblyInformationalVersion("__SERVICE_MANAGER_VERSION__")]
 
 namespace ProjectDBServiceManager
 {
@@ -1001,7 +1001,7 @@ namespace ProjectDBServiceManager
 			_busyLabel.AutoEllipsis = true;
 			footer.Controls.Add(_busyLabel, 0, 0);
 			_footerInfo = new BufferedLabel();
-			_footerInfo.Text = "\u00A9 ProjectDB, 2026  \u00B7  Service Manager v0.1.0-dev  \u00B7  Core 3.4.0";
+			_footerInfo.Text = "\u00A9 ProjectDB, 2026  \u00B7  Service Manager v" + Application.ProductVersion + "  \u00B7  Core 3.4.0";
 			_footerInfo.Dock = DockStyle.Fill;
 			_footerInfo.ForeColor = Ui.FooterMuted;
 			_footerInfo.Font = new Font("Segoe UI", 8.5F);

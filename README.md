@@ -78,7 +78,7 @@ Each application card shows its current state with a colored indicator:
 
 For a running application, the process PID and ProjectDB source/version information may also be shown.
 
-The **Last activity** area shows the latest structured log entry. Messages that appear to contain a warning or error are additionally highlighted in the Service Manager interface.
+The **Last activity** area shows the latest structured log entry. Messages that appear to contain a warning or error are additionally highlighted.
 
 ## Manage local library
 
@@ -106,11 +106,9 @@ To remove the complete installation, use **Uninstall ProjectDB** from the Servic
 
 ## Administrator rights
 
-Setup requests administrator privileges when installing or updating ProjectDB Service Manager.
+When Setup starts, Windows asks for administrator approval. This is required to install or update the program.
 
-Normal application control — **Start**, **Stop**, **Restart**, and **Restart all** — does not require a separate UAC prompt.
-
-Actions that change Windows configuration or the shared ProjectDB installation may request administrator approval. These include adding or removing applications, managing the local library, and fully uninstalling ProjectDB.
+Normal use and application control do not require additional confirmation. When adding or removing applications, managing the local library, or fully uninstalling the program, Windows will request administrator approval when needed.
 
 ## License
 

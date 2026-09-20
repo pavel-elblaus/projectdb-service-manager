@@ -7,6 +7,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Globalization;
 using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
 using System.Security.Principal;
@@ -17,6 +18,15 @@ using System.Threading;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using System.Xml;
+
+[assembly: AssemblyTitle("ProjectDB Service Manager")]
+[assembly: AssemblyDescription("ProjectDB Service Manager")]
+[assembly: AssemblyProduct("ProjectDB Service Manager")]
+[assembly: AssemblyCompany("Pavel Elblaus")]
+[assembly: AssemblyCopyright("Copyright (c) 2022-2026 Pavel Elblaus")]
+[assembly: AssemblyVersion("0.1.0.0")]
+[assembly: AssemblyFileVersion("0.1.0.0")]
+[assembly: AssemblyInformationalVersion("0.1.0-dev")]
 
 namespace ProjectDBTray
 {

@@ -12,7 +12,7 @@ This description and guide are also available [in English](README.md).
 
 В одном интерфейсе можно регистрировать приложения, запускать и останавливать их, следить за состоянием и последними событиями, открывать логи, обновлять ProjectDB и управлять локальной библиотекой `app.so`. Настройку служб и повседневное управление программа выполняет самостоятельно.
 
-ProjectDB развивается отдельно в [репозитории ProjectDB](https://github.com/pavel-elblaus/projectdb). Подробнее о продукте — на сайте [projectdb.ru](https://projectdb.ru).
+Разработка ProjectDB ведётся отдельно в [репозитории на GitHub](https://github.com/pavel-elblaus/projectdb). Подробнее о продукте — на сайте [projectdb.ru](https://projectdb.ru).
 
 ## Зачем нужен ProjectDB Service Manager
 

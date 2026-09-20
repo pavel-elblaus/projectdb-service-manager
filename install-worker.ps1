@@ -46,11 +46,6 @@ $ProgramFiles64 = [Environment]::GetFolderPath([Environment+SpecialFolder]::Prog
 $AppDir = $null
 $ServiceRoot = $null
 $ManagerExe = $null
-$LegacyTrayExe = $null
-$LegacyManagerExe = $null
-$LegacyServiceControlExe = $null
-$LegacyLogWrapperExe = $null
-$LegacyUninstallExe = $null
 $ServiceControlExe = $null
 $LogWrapperExe = $null
 $UninstallExe = $null
@@ -106,11 +101,6 @@ function Set-InstallPaths([string]$Directory) {
 	$script:UninstallExe = Join-Path $BinDir 'projectdb-uninstall.exe'
 	$script:CommonWinSw = Join-Path $BinDir 'winsw.exe'
 
-	$script:LegacyTrayExe = Join-Path $AppDir 'projectdb-tray.exe'
-	$script:LegacyManagerExe = Join-Path $AppDir 'ProjectDB-Service-Manager.exe'
-	$script:LegacyServiceControlExe = Join-Path $AppDir 'projectdb-service-control.exe'
-	$script:LegacyLogWrapperExe = Join-Path $AppDir 'projectdb-log-wrapper.exe'
-	$script:LegacyUninstallExe = Join-Path $AppDir 'ProjectDB-Uninstall.exe'
 
 	$script:InstalledIcon = Join-Path $AppDir 'projectdb.ico'
 	$script:InstalledNotices = Join-Path $AppDir 'THIRD-PARTY-NOTICES.txt'
@@ -516,18 +506,6 @@ try {
 
 	$previousRunning = Stop-ProjectDbServices
 
-	# Remove the previous root-level layout only after service processes have exited.
-	@(
-		$LegacyTrayExe,
-		$LegacyManagerExe,
-		$LegacyServiceControlExe,
-		$LegacyLogWrapperExe,
-		$LegacyUninstallExe
-	) | ForEach-Object {
-		if (-not [string]::IsNullOrWhiteSpace([string]$_)) {
-			Remove-Item -LiteralPath $_ -Force -ErrorAction SilentlyContinue
-		}
-	}
 
 	Write-Status 48 'Installing ProjectDB files...'
 	New-Item -ItemType Directory -Force -Path $AppDir | Out-Null

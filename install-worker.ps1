@@ -499,11 +499,36 @@ try {
 	$appExe = Join-Path $AppDir 'projectdb.exe'
 
 	# Recover a stale pre-release installation left by an incomplete uninstall.
+	$staleInstall = $false
 	if ($mode -eq 'install' -and
 		[String]::Equals($AppDir, (Join-Path $ProgramFiles64 'ProjectDB'), [StringComparison]::OrdinalIgnoreCase) -and
 		-not [IO.File]::Exists($appExe) -and
-		-not (Test-Path -LiteralPath $UninstallKey)) {
-		Add-InstallerLog 'Stale ProjectDB installation directory detected; starting cleanup.'
+		-not (Test-Path -LiteralPath $UninstallKey) -and
+		[IO.Directory]::Exists($AppDir)) {
+		try {
+			$installerLogRoot = Join-Path $AppDir 'log\installer'
+			foreach ($entry in [IO.Directory]::EnumerateFileSystemEntries($AppDir)) {
+				if ([String]::Equals($entry, (Join-Path $AppDir 'log'), [StringComparison]::OrdinalIgnoreCase)) {
+					$otherLogEntry = $false
+					foreach ($logEntry in [IO.Directory]::EnumerateFileSystemEntries((Join-Path $AppDir 'log'))) {
+						if (-not [String]::Equals($logEntry, $installerLogRoot, [StringComparison]::OrdinalIgnoreCase)) {
+							$otherLogEntry = $true
+							break
+						}
+					}
+					if (-not $otherLogEntry) { continue }
+				}
+				$staleInstall = $true
+				break
+			}
+		} catch {
+			# Inaccessible contents are treated as stale and recovered below.
+			$staleInstall = $true
+		}
+	}
+
+	if ($staleInstall) {
+		Add-InstallerLog 'Stale ProjectDB installation detected; starting cleanup.'
 
 		# Stop any orphaned Manager process before touching the installation directory.
 		$taskkill = Join-Path $env:SystemRoot 'System32\taskkill.exe'
@@ -511,36 +536,34 @@ try {
 		Add-InstallerLog ('Stale Manager process cleanup exit={0}; output={1}; error={2}' -f $kill.ExitCode, $kill.StdOut.Trim(), $kill.StdErr.Trim())
 		Start-Sleep -Milliseconds 500
 
-		if ([IO.Directory]::Exists($AppDir)) {
-			$takeown = Join-Path $env:SystemRoot 'System32\takeown.exe'
-			$icacls = Join-Path $env:SystemRoot 'System32\icacls.exe'
+		$takeown = Join-Path $env:SystemRoot 'System32\takeown.exe'
+		$icacls = Join-Path $env:SystemRoot 'System32\icacls.exe'
 
-			$own = Invoke-HiddenProcess $takeown @('/F',$AppDir,'/A','/R','/D','Y')
-			Add-InstallerLog ('takeown stale directory exit={0}; output={1}; error={2}' -f $own.ExitCode, $own.StdOut.Trim(), $own.StdErr.Trim())
+		$own = Invoke-HiddenProcess $takeown @('/F',$AppDir,'/A','/R','/D','Y')
+		Add-InstallerLog ('takeown stale directory exit={0}; output={1}; error={2}' -f $own.ExitCode, $own.StdOut.Trim(), $own.StdErr.Trim())
 
-			$acl = Invoke-HiddenProcess $icacls @($AppDir,'/inheritance:e','/grant:r','*S-1-5-32-544:(OI)(CI)F','/T','/C')
-			Add-InstallerLog ('icacls stale directory exit={0}; output={1}; error={2}' -f $acl.ExitCode, $acl.StdOut.Trim(), $acl.StdErr.Trim())
+		$acl = Invoke-HiddenProcess $icacls @($AppDir,'/inheritance:e','/grant:r','*S-1-5-32-544:(OI)(CI)F','/T','/C')
+		Add-InstallerLog ('icacls stale directory exit={0}; output={1}; error={2}' -f $acl.ExitCode, $acl.StdOut.Trim(), $acl.StdErr.Trim())
 
-			$removed = $false
-			for ($i = 0; $i -lt 20; $i++) {
-				try {
-					[IO.Directory]::Delete($AppDir, $true)
-					$removed = $true
-					break
-				} catch {
-					if ($i -eq 0) {
-						Add-InstallerLog ('Waiting for stale installation files to be released: ' + $_.Exception.Message)
-					}
-					Start-Sleep -Milliseconds 500
+		$removed = $false
+		for ($i = 0; $i -lt 20; $i++) {
+			try {
+				[IO.Directory]::Delete($AppDir, $true)
+				$removed = $true
+				break
+			} catch {
+				if ($i -eq 0) {
+					Add-InstallerLog ('Waiting for stale installation files to be released: ' + $_.Exception.Message)
 				}
+				Start-Sleep -Milliseconds 500
 			}
-
-			if (-not $removed -and [IO.Directory]::Exists($AppDir)) {
-				throw 'The previous ProjectDB installation could not be removed. Restart Windows and run Setup again.'
-			}
-
-			Add-InstallerLog 'Removed stale ProjectDB installation directory.'
 		}
+
+		if (-not $removed -and [IO.Directory]::Exists($AppDir)) {
+			throw 'The previous ProjectDB installation could not be removed. Restart Windows and run Setup again.'
+		}
+
+		Add-InstallerLog 'Removed stale ProjectDB installation directory.'
 	}
 
 	$libraryDir = Join-Path $AppDir 'lib'

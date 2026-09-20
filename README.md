@@ -14,6 +14,20 @@ It provides a single interface for registering applications, starting and stoppi
 
 ProjectDB is developed separately in its [GitHub repository](https://github.com/pavel-elblaus/projectdb). Learn more about the product at [projectdb.pro](https://projectdb.pro).
 
+## Screenshots
+
+### Setup
+
+<p>
+	<img src="docs/images/setup.png" alt="ProjectDB Setup" width="602">
+</p>
+
+### ProjectDB Service Manager
+
+<p>
+	<img src="docs/images/service-manager.png" alt="ProjectDB Service Manager" width="846">
+</p>
+
 ## Why ProjectDB Service Manager?
 
 - **One installation for multiple applications.** ProjectDB files are shared, while every registered application has its own configuration and Windows service.

@@ -278,54 +278,6 @@ function Ensure-ServiceStateDirectory {
 	if ($LASTEXITCODE -ne 0) { throw 'Could not configure ProjectDB service startup state permissions.' }
 }
 
-function Initialize-ServiceAutoStartState($RunningServices, [bool]$AlreadyInitialized) {
-	Ensure-ServiceStateDirectory
-	if ($AlreadyInitialized) { return }
-
-	foreach ($item in $RunningServices) {
-		$flag = Get-ServiceAutoStartFlag $item.Id
-		[IO.File]::WriteAllText($flag, '1', (New-Object Text.UTF8Encoding($false)))
-	}
-	Add-InstallerLog ('Initialized persistent startup state from currently running services: {0} enabled.' -f $RunningServices.Count)
-}
-
-function Set-AllProjectDbServicesManual {
-	if (-not (Test-Path -LiteralPath $ServiceRoot)) { return }
-	$sc = Join-Path $env:SystemRoot 'System32\sc.exe'
-
-	foreach ($dir in Get-ChildItem -LiteralPath $ServiceRoot -Directory -ErrorAction SilentlyContinue) {
-		$xmlPath = Join-Path $dir.FullName 'projectdb-service.xml'
-		if (-not (Test-Path -LiteralPath $xmlPath -PathType Leaf)) { continue }
-		try {
-			[xml]$doc = Get-Content -LiteralPath $xmlPath -Raw -Encoding UTF8
-			$id = [string]$doc.service.id
-			if ([string]::IsNullOrWhiteSpace($id)) { continue }
-
-			$startMode = $doc.SelectSingleNode('/service/startmode')
-			if ($null -eq $startMode) {
-				$startMode = $doc.CreateElement('startmode')
-				[void]$doc.service.AppendChild($startMode)
-			}
-			$startMode.InnerText = 'Manual'
-
-			$delayed = $doc.SelectSingleNode('/service/delayedAutoStart')
-			if ($null -ne $delayed) { [void]$delayed.ParentNode.RemoveChild($delayed) }
-
-			$settings = New-Object System.Xml.XmlWriterSettings
-			$settings.Encoding = New-Object Text.UTF8Encoding($false)
-			$settings.Indent = $true
-			$writer = [System.Xml.XmlWriter]::Create($xmlPath, $settings)
-			try { $doc.Save($writer) } finally { $writer.Dispose() }
-
-			& $sc config $id start= demand | Out-Null
-			if ($LASTEXITCODE -ne 0) { throw ('Could not set service to Manual: ' + $id) }
-			Add-InstallerLog ('Set ProjectDB service startup type to Manual: ' + $id)
-		} catch {
-			throw ('Could not migrate ProjectDB service startup mode in {0}: {1}' -f $dir.FullName, $_.Exception.Message)
-		}
-	}
-}
-
 function Register-ProjectDbStartupTask {
 	$schtasks = Join-Path $env:SystemRoot 'System32\schtasks.exe'
 	$taskCommand = '"' + $ServiceControlExe + '" startup'
@@ -521,7 +473,6 @@ try {
 	if ($mode -ne 'install' -and $mode -ne 'update') { throw 'Installation mode is invalid.' }
 
 	Set-InstallPaths $requestedDir
-	$serviceStateInitialized = Test-Path -LiteralPath $ServiceStateDir -PathType Container
 	$prepareText = if ($mode -eq 'update') { 'Preparing update...' } else { 'Preparing installation...' }
 	Write-Status 1 $prepareText
 
@@ -609,9 +560,8 @@ try {
 	Sign-ProjectDbBinary $UninstallExe $publisherCertificate
 	Sign-ProjectDbBinary $ManagerExe $publisherCertificate
 	Update-ExistingServiceCommands $LogWrapperExe
-	Initialize-ServiceAutoStartState $previousRunning $serviceStateInitialized
+	Ensure-ServiceStateDirectory
 	Register-ProjectDbStartupTask
-	Set-AllProjectDbServicesManual
 	$publisherCertificate = $null
 
 	$runPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'

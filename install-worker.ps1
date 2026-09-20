@@ -534,7 +534,8 @@ try {
 		try { $managerProcess.WaitForExit(5000) } catch {}
 	}
 
-	$previousRunning = Stop-ProjectDbServices
+	$previousRunning = @(Stop-ProjectDbServices)
+	Add-InstallerLog ('Active ProjectDB services preserved for update: {0}' -f $previousRunning.Count)
 
 
 	Write-Status 48 'Installing ProjectDB files...'

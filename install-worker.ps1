@@ -58,6 +58,8 @@ $BinDir = $null
 $CommonWinSw = $null
 $InstalledIcon = $null
 $InstalledNotices = $null
+$ServiceStateDir = $null
+$StartupTaskName = 'ProjectDB Service Startup'
 $UninstallKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\ProjectDB'
 $InstallerLogDir = $null
 $InstallerLog = $null
@@ -112,6 +114,7 @@ function Set-InstallPaths([string]$Directory) {
 
 	$script:InstalledIcon = Join-Path $AppDir 'projectdb.ico'
 	$script:InstalledNotices = Join-Path $AppDir 'THIRD-PARTY-NOTICES.txt'
+	$script:ServiceStateDir = Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::CommonApplicationData)) 'ProjectDB\service-state'
 	$script:InstallerLogDir = Join-Path $AppDir 'log\installer'
 	$script:InstallerLog = Join-Path $InstallerLogDir 'setup.log'
 }

@@ -521,6 +521,7 @@ try {
 	if ($mode -ne 'install' -and $mode -ne 'update') { throw 'Installation mode is invalid.' }
 
 	Set-InstallPaths $requestedDir
+	$serviceStateInitialized = Test-Path -LiteralPath $ServiceStateDir -PathType Container
 	$prepareText = if ($mode -eq 'update') { 'Preparing update...' } else { 'Preparing installation...' }
 	Write-Status 1 $prepareText
 
@@ -563,6 +564,8 @@ try {
 	}
 
 	$previousRunning = Stop-ProjectDbServices
+	Initialize-ServiceAutoStartState $previousRunning $serviceStateInitialized
+	Set-AllProjectDbServicesManual
 
 	# Remove the previous root-level layout only after service processes have exited.
 	@(
@@ -608,6 +611,7 @@ try {
 	Sign-ProjectDbBinary $UninstallExe $publisherCertificate
 	Sign-ProjectDbBinary $ManagerExe $publisherCertificate
 	Update-ExistingServiceCommands $LogWrapperExe
+	Register-ProjectDbStartupTask
 	$publisherCertificate = $null
 
 	$runPath = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run'

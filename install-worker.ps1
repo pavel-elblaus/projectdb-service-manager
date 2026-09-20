@@ -497,6 +497,31 @@ try {
 	Write-Status 1 $prepareText
 
 	$appExe = Join-Path $AppDir 'projectdb.exe'
+
+	# Recover the known pre-release uninstall residue in the default directory.
+	if ($mode -eq 'install' -and
+		[String]::Equals($AppDir, (Join-Path $ProgramFiles64 'ProjectDB'), [StringComparison]::OrdinalIgnoreCase) -and
+		-not [IO.File]::Exists($appExe) -and
+		-not (Test-Path -LiteralPath $UninstallKey)) {
+		foreach ($process in @(Get-Process -Name 'projectdb-service-manager' -ErrorAction SilentlyContinue)) {
+			try { $process.Kill(); $process.WaitForExit(5000) } catch {}
+			finally { $process.Dispose() }
+		}
+		try {
+			Remove-Item -LiteralPath $ManagerExe -Force -ErrorAction Stop
+			Add-InstallerLog 'Removed orphaned ProjectDB Service Manager file from a previous incomplete uninstall.'
+		} catch [Management.Automation.ItemNotFoundException] {
+		} catch {
+			Add-InstallerLog ('Recovering access to orphaned Service Manager file: ' + $_.Exception.Message)
+			$takeown = Join-Path $env:SystemRoot 'System32\takeown.exe'
+			$icacls = Join-Path $env:SystemRoot 'System32\icacls.exe'
+			& $takeown /F $ManagerExe /A | Out-Null
+			& $icacls $ManagerExe /grant:r '*S-1-5-32-544:F' | Out-Null
+			Remove-Item -LiteralPath $ManagerExe -Force -ErrorAction Stop
+			Add-InstallerLog 'Recovered and removed orphaned ProjectDB Service Manager file.'
+		}
+	}
+
 	$libraryDir = Join-Path $AppDir 'lib'
 	$libraryFile = Join-Path $libraryDir 'app.so'
 	$libraryMeta = Join-Path $libraryDir 'app.so.meta.json'

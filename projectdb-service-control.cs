@@ -55,6 +55,7 @@ namespace ProjectDBServiceControl
 		private static readonly string LibraryHistoryDirectory = Path.Combine(LibraryDirectory, "history");
 		private static readonly string ProgramDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ProjectDB");
 		private static readonly string ServiceStateDirectory = Path.Combine(ProgramDataDirectory, "service-state");
+		private static readonly string CleanupLogPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ProjectDB-uninstall-cleanup.log");
 		private const string StartupTaskName = "ProjectDB Service Startup";
 		private const string PublisherSubject = "CN=ProjectDB Local Publisher";
 		private const string ProjectDbRegistryPath = "SOFTWARE\\ProjectDB";
@@ -659,6 +660,19 @@ namespace ProjectDBServiceControl
 				RemoveLocalPublisherCertificate();
 				RemoveProjectDbRegistry();
 
+				try
+				{
+					File.WriteAllText(
+						CleanupLogPath,
+						DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " Uninstall cleanup diagnostics started." + Environment.NewLine +
+						"Uninstall PID=" + Process.GetCurrentProcess().Id.ToString() + Environment.NewLine +
+						"Working directory=" + Environment.CurrentDirectory + Environment.NewLine +
+						"Install directory=" + BaseDirectory + Environment.NewLine +
+						"ProgramData directory=" + ProgramDataDirectory + Environment.NewLine,
+						new UTF8Encoding(false));
+				}
+				catch { }
+
 				MessageBox.Show("ProjectDB was uninstalled successfully.", "ProjectDB", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				ScheduleDirectoryRemoval(BaseDirectory);
 				ScheduleDirectoryRemoval(ProgramDataDirectory);
@@ -792,27 +806,44 @@ namespace ProjectDBServiceControl
 		private static void ScheduleDirectoryRemoval(string path)
 		{
 			string escapedPath = path.Replace("'", "''");
+			string escapedLog = CleanupLogPath.Replace("'", "''");
 			int parentProcessId = Process.GetCurrentProcess().Id;
 			string script =
 				"$p='" + escapedPath + "';" +
+				"$log='" + escapedLog + "';" +
 				"$prefix=$p.TrimEnd('\\')+'\\';" +
 				"$parent=" + parentProcessId.ToString() + ";" +
+				"function Log([string]$m){try{[IO.File]::AppendAllText($log,((Get-Date).ToString('yyyy-MM-dd HH:mm:ss.fff')+' ['+$p+'] '+$m+[Environment]::NewLine),(New-Object Text.UTF8Encoding($false)))}catch{}};" +
+				"Log ('cleanup process started; PID='+$PID+'; parent='+$parent+'; cwd='+[Environment]::CurrentDirectory);" +
+				"$parentExited=$false;" +
 				"for($w=0;$w -lt 120;$w++){" +
-				"if(-not (Get-Process -Id $parent -ErrorAction SilentlyContinue)){break};" +
+				"if(-not (Get-Process -Id $parent -ErrorAction SilentlyContinue)){$parentExited=$true;break};" +
 				"Start-Sleep -Milliseconds 250" +
 				"};" +
+				"Log ('parent exited='+$parentExited+'; directory exists='+[IO.Directory]::Exists($p));" +
 				"for($i=0;$i -lt 60 -and [IO.Directory]::Exists($p);$i++){" +
+				"Log ('delete attempt '+($i+1));" +
 				"try{" +
 				"Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object {" +
 				"$exe=$_.ExecutablePath;" +
 				"if($exe -and $exe.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)){" +
-				"Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue" +
+				"Log ('residual process PID='+$_.ProcessId+'; name='+$_.Name+'; exe='+$exe);" +
+				"try{Stop-Process -Id $_.ProcessId -Force -ErrorAction Stop;Log ('stopped PID='+$_.ProcessId)}catch{Log ('could not stop PID='+$_.ProcessId+'; '+$_.Exception.GetType().FullName+': '+$_.Exception.Message)}" +
 				"}" +
 				"}" +
-				"}catch{};" +
-				"try{[IO.Directory]::Delete($p,$true)}catch{};" +
+				"}catch{Log ('process enumeration failed; '+$_.Exception.GetType().FullName+': '+$_.Exception.Message)};" +
+				"try{" +
+				"$entries=@([IO.Directory]::EnumerateFileSystemEntries($p));" +
+				"Log ('entries before delete='+$entries.Count);" +
+				"[IO.Directory]::Delete($p,$true);" +
+				"Log 'Directory.Delete returned successfully'" +
+				"}catch{" +
+				"$e=$_.Exception;" +
+				"Log ('Directory.Delete failed; type='+$e.GetType().FullName+'; hresult=0x'+$e.HResult.ToString('X8')+'; message='+$e.Message)" +
+				"};" +
 				"if([IO.Directory]::Exists($p)){Start-Sleep -Milliseconds 500}" +
-				"}";
+				"};" +
+				"Log ('cleanup finished; directory exists='+[IO.Directory]::Exists($p));";
 			string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
 			ProcessStartInfo psi = new ProcessStartInfo();
 			psi.FileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe");

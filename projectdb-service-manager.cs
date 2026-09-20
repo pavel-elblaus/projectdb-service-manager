@@ -2389,6 +2389,7 @@ namespace ProjectDBServiceManager
 			{
 				if (!Directory.Exists(path)) Directory.CreateDirectory(path);
 				ProcessStartInfo psi = new ProcessStartInfo("explorer.exe", "\"" + path + "\"");
+				psi.WorkingDirectory = Environment.SystemDirectory;
 				psi.UseShellExecute = true;
 				Process.Start(psi);
 			}

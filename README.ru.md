@@ -18,15 +18,11 @@ This description and guide are also available [in English](README.md).
 
 ### Установщик
 
-<p>
-	<img src="docs/images/setup.png" alt="Установщик ProjectDB" width="602">
-</p>
+![Установщик ProjectDB](docs/images/setup.webp)
 
 ### ProjectDB Service Manager
 
-<p>
-	<img src="docs/images/service-manager.png" alt="ProjectDB Service Manager" width="846">
-</p>
+![ProjectDB Service Manager](docs/images/service-manager.webp)
 
 ## Зачем нужен ProjectDB Service Manager
 

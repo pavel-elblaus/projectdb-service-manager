@@ -269,11 +269,40 @@ function Ensure-ServiceStateDirectory {
 }
 
 function Register-ProjectDbStartupTask {
-	$schtasks = Join-Path $env:SystemRoot 'System32\schtasks.exe'
-	$taskCommand = '"' + $ServiceControlExe + '" startup'
-	& $schtasks /Create /TN $StartupTaskName /TR $taskCommand /SC ONSTART /RU SYSTEM /RL HIGHEST /DELAY 0000:20 /F | Out-Null
-	if ($LASTEXITCODE -ne 0) { throw 'Could not register the ProjectDB service startup task.' }
-	Add-InstallerLog ('Registered Windows startup task: ' + $StartupTaskName)
+	try {
+		$service = New-Object -ComObject 'Schedule.Service'
+		$service.Connect()
+
+		$folder = $service.GetFolder('\')
+		$task = $service.NewTask(0)
+
+		$task.RegistrationInfo.Description = 'Starts ProjectDB applications enabled for automatic startup.'
+		$task.Principal.UserId = 'SYSTEM'
+		$task.Principal.LogonType = 5
+		$task.Principal.RunLevel = 1
+
+		$trigger = $task.Triggers.Create(8)
+		$trigger.Enabled = $true
+		$trigger.Delay = 'PT20S'
+
+		$action = $task.Actions.Create(0)
+		$action.Path = $ServiceControlExe
+		$action.Arguments = 'startup'
+		$action.WorkingDirectory = $AppDir
+
+		$task.Settings.Enabled = $true
+		$task.Settings.StartWhenAvailable = $true
+		$task.Settings.DisallowStartIfOnBatteries = $false
+		$task.Settings.StopIfGoingOnBatteries = $false
+		$task.Settings.ExecutionTimeLimit = 'PT5M'
+
+		# TASK_CREATE_OR_UPDATE = 6, TASK_LOGON_SERVICE_ACCOUNT = 5
+		[void]$folder.RegisterTaskDefinition($StartupTaskName, $task, 6, 'SYSTEM', $null, 5, $null)
+		Add-InstallerLog ('Registered Windows startup task: ' + $StartupTaskName)
+	} catch {
+		Add-InstallerLog ('Could not register Windows startup task {0}: {1}' -f $StartupTaskName, $_.Exception.ToString())
+		throw ('Could not register the ProjectDB service startup task: ' + $_.Exception.Message)
+	}
 }
 
 function Grant-ServiceInteractiveControl([string]$ServiceId) {

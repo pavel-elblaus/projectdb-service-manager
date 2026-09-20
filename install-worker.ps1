@@ -427,22 +427,23 @@ try {
 	if ($null -eq $releaseExe) { throw 'projectdb.exe was not found in the release archive.' }
 
 	# Preserve a locally pinned app.so across ProjectDB binary updates.
-	if (Test-Path -LiteralPath $libraryFile) {
+	if ($mode -eq 'update' -and (Test-Path -LiteralPath $libraryFile)) {
 		Copy-Item -LiteralPath $libraryFile -Destination $pinnedLibraryBackup -Force
 		if (Test-Path -LiteralPath $libraryMeta) { Copy-Item -LiteralPath $libraryMeta -Destination $pinnedLibraryMetaBackup -Force }
 		Add-InstallerLog 'Local lib\app.so override detected and will be preserved.'
 	}
 
-	Write-Status 38 'Stopping ProjectDB Service Manager and active ProjectDB services...'
-	$managerProcesses = @(Get-Process -Name 'projectdb-service-manager' -ErrorAction SilentlyContinue)
-	$managerProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
-	foreach ($managerProcess in $managerProcesses) {
-		try { $managerProcess.WaitForExit(5000) } catch {}
+	if ($mode -eq 'update') {
+		Write-Status 38 'Stopping ProjectDB Service Manager and active ProjectDB services...'
+		$managerProcesses = @(Get-Process -Name 'projectdb-service-manager' -ErrorAction SilentlyContinue)
+		$managerProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+		foreach ($managerProcess in $managerProcesses) {
+			try { $managerProcess.WaitForExit(5000) } catch {}
+		}
+
+		$previousRunning = @(Stop-ProjectDbServices)
+		Add-InstallerLog ('Active ProjectDB services preserved for update: {0}' -f $previousRunning.Count)
 	}
-
-	$previousRunning = @(Stop-ProjectDbServices)
-	Add-InstallerLog ('Active ProjectDB services preserved for update: {0}' -f $previousRunning.Count)
-
 
 	Write-Status 48 'Installing ProjectDB files...'
 	New-Item -ItemType Directory -Force -Path $AppDir | Out-Null
@@ -460,7 +461,7 @@ try {
 	Write-Status 60 'Installing Windows service runtime...'
 	New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
 	Copy-Item -LiteralPath $winSwTemp -Destination $CommonWinSw -Force
-	Update-ExistingWinSwWrappers
+	if ($mode -eq 'update') { Update-ExistingWinSwWrappers }
 
 	Write-Status 70 'Preparing local ProjectDB publisher...'
 	$publisherCertificate = Get-ProjectDbPublisherCertificate

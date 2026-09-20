@@ -42,7 +42,7 @@ jobs:
           $version = (Get-Content -LiteralPath .\VERSION -Raw).Trim()
           $file = "ProjectDB-Setup-$version.exe"
           $args = @(
-            'release', 'create', $env:GITHUB_REF_NAME, $file,
+            'release', 'create', $env:GITHUB_REF_NAME, $file, 'THIRD-PARTY-NOTICES.txt',
             '--repo', $env:GITHUB_REPOSITORY,
             '--title', "ProjectDB Service Manager $env:GITHUB_REF_NAME",
             '--generate-notes'

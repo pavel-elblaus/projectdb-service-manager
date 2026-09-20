@@ -53,7 +53,8 @@ namespace ProjectDBServiceControl
 		private static readonly string LibraryPath = Path.Combine(LibraryDirectory, "app.so");
 		private static readonly string LibraryMetadataPath = Path.Combine(LibraryDirectory, "app.so.meta.json");
 		private static readonly string LibraryHistoryDirectory = Path.Combine(LibraryDirectory, "history");
-		private static readonly string ServiceStateDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ProjectDB", "service-state");
+		private static readonly string ProgramDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ProjectDB");
+		private static readonly string ServiceStateDirectory = Path.Combine(ProgramDataDirectory, "service-state");
 		private const string StartupTaskName = "ProjectDB Service Startup";
 		private const string PublisherSubject = "CN=ProjectDB Local Publisher";
 		private const string ProjectDbRegistryPath = "SOFTWARE\\ProjectDB";
@@ -657,6 +658,7 @@ namespace ProjectDBServiceControl
 
 				MessageBox.Show("ProjectDB was uninstalled successfully.", "ProjectDB", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				ScheduleDirectoryRemoval(BaseDirectory);
+				ScheduleDirectoryRemoval(ProgramDataDirectory);
 				return 0;
 			}
 			catch (Exception ex)
@@ -790,9 +792,9 @@ namespace ProjectDBServiceControl
 			string script =
 				"$p='" + escapedPath + "';" +
 				"Start-Sleep -Milliseconds 500;" +
-				"for($i=0;$i -lt 60 -and (Test-Path -LiteralPath $p);$i++){" +
-				"Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue;" +
-				"if(Test-Path -LiteralPath $p){Start-Sleep -Milliseconds 500}" +
+				"for($i=0;$i -lt 60 -and [IO.Directory]::Exists($p);$i++){" +
+				"try{[IO.Directory]::Delete($p,$true)}catch{};" +
+				"if([IO.Directory]::Exists($p)){Start-Sleep -Milliseconds 500}" +
 				"}";
 			string encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
 			ProcessStartInfo psi = new ProcessStartInfo();

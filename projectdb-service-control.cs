@@ -632,6 +632,9 @@ namespace ProjectDBServiceControl
 			if (confirm != DialogResult.Yes)
 				return 0;
 
+			// Do not keep the installation directory as the process working directory.
+			try { Environment.CurrentDirectory = Path.GetTempPath(); } catch { }
+
 			try
 			{
 				foreach (Process process in Process.GetProcessesByName("projectdb-service-manager"))
@@ -789,9 +792,14 @@ namespace ProjectDBServiceControl
 		private static void ScheduleDirectoryRemoval(string path)
 		{
 			string escapedPath = path.Replace("'", "''");
+			int parentProcessId = Process.GetCurrentProcess().Id;
 			string script =
 				"$p='" + escapedPath + "';" +
-				"Start-Sleep -Milliseconds 500;" +
+				"$parent=" + parentProcessId.ToString() + ";" +
+				"for($w=0;$w -lt 120;$w++){" +
+				"if(-not (Get-Process -Id $parent -ErrorAction SilentlyContinue)){break};" +
+				"Start-Sleep -Milliseconds 250" +
+				"};" +
 				"for($i=0;$i -lt 60 -and [IO.Directory]::Exists($p);$i++){" +
 				"try{[IO.Directory]::Delete($p,$true)}catch{};" +
 				"if([IO.Directory]::Exists($p)){Start-Sleep -Milliseconds 500}" +

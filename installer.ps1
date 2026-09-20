@@ -87,17 +87,15 @@ function Get-ExistingInstallDir() {
 		$item = Get-ItemProperty -Path $UninstallKey -ErrorAction Stop
 		$candidate = [string]$item.InstallLocation
 		if (-not [string]::IsNullOrWhiteSpace($candidate)) {
-			$manager = Join-Path $candidate 'bin\projectdb-service-manager.exe'
 			$projectDb = Join-Path $candidate 'projectdb.exe'
-			if ([IO.File]::Exists($manager) -or [IO.File]::Exists($projectDb)) {
+			if ([IO.File]::Exists($projectDb)) {
 				return $candidate.TrimEnd('\')
 			}
 		}
 	} catch {}
 
-	$defaultManager = Join-Path $DefaultAppDir 'bin\projectdb-service-manager.exe'
 	$defaultProjectDb = Join-Path $DefaultAppDir 'projectdb.exe'
-	if ([IO.File]::Exists($defaultManager) -or [IO.File]::Exists($defaultProjectDb)) {
+	if ([IO.File]::Exists($defaultProjectDb)) {
 		return $DefaultAppDir
 	}
 	return $null

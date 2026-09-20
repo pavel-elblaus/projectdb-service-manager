@@ -19,7 +19,7 @@ ProjectDB itself is available at [github.com/pavel-elblaus/projectdb](https://gi
 A regular ProjectDB Windows archive can run an application directly. ProjectDB Service Manager adds the Windows service lifecycle and a convenient management layer around it.
 
 - **One installation, multiple applications.** ProjectDB binaries are shared, while every registered application gets its own configuration and Windows service.
-- **Automatic startup.** Registered applications run as Windows services and can continue working without an open terminal or signed-in user session.
+- **Automatic startup with persistent manual stop.** Registered applications run as Windows services and can continue working without an open terminal or signed-in user session. If an application is explicitly stopped in Service Manager, it remains stopped after a Windows restart until the user starts it again.
 - **Simple service control.** Start, stop and restart applications from the GUI. Restart all currently running applications with one action.
 - **Status at a glance.** Each application card shows service state, service identifier, process ID and ProjectDB source/version information when available.
 - **Recent activity preview.** The latest structured log entry is visible directly in the application card, with warnings and errors highlighted.

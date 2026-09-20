@@ -90,7 +90,7 @@ For a running application, the card can also show its process ID and ProjectDB s
 
 The **Last activity** area displays the latest structured log message. Warnings and errors are highlighted so problems are easier to notice.
 
-## Manage `app.so`
+## Manage local library
 
 The **ProjectDB library** section lets you select a local `app.so` file.
 

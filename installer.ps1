@@ -3,6 +3,9 @@ param(
 	[string]$WorkerScript,
 
 	[Parameter(Mandatory=$true)]
+	[string]$ServiceManagerVersion,
+
+	[Parameter(Mandatory=$true)]
 	[string]$ManagerSource,
 
 	[Parameter(Mandatory=$true)]
@@ -60,7 +63,6 @@ $statusPath = Join-Path $runtimeDir 'worker-status.json'
 $workerProcess = $null
 $lastStatusJson = $null
 $installationFinished = $false
-$ServiceManagerVersion = '__SERVICE_MANAGER_VERSION__'
 $SetupCaption = "ProjectDB Setup $ServiceManagerVersion"
 $ProjectDbVersion = '3.4.0'
 $ProjectDbArchitecture = 'x64'

@@ -24,9 +24,6 @@ using System.Xml;
 [assembly: AssemblyProduct("ProjectDB Service Manager")]
 [assembly: AssemblyCompany("Pavel Elblaus")]
 [assembly: AssemblyCopyright("Copyright (c) 2022-2026 Pavel Elblaus")]
-[assembly: AssemblyVersion("__SERVICE_MANAGER_FILE_VERSION__")]
-[assembly: AssemblyFileVersion("__SERVICE_MANAGER_FILE_VERSION__")]
-[assembly: AssemblyInformationalVersion("__SERVICE_MANAGER_VERSION__")]
 
 namespace ProjectDBServiceManager
 {

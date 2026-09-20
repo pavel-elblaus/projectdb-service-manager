@@ -111,7 +111,7 @@ try {
 	& $go.Source run 'github.com/josephspurrier/goversioninfo/cmd/goversioninfo@v1.7.0' -64 -o $resource $versionInfo
 	if ($LASTEXITCODE -ne 0) { throw "Windows version resource generation failed with exit code $LASTEXITCODE" }
 
-	$ldflags = "-H=windowsgui -s -w -X main.setupVersion=$version -X main.setupFileVersion=$fileVersion"
+	$ldflags = "-H=windowsgui -s -w -X main.setupVersion=$version"
 	& $go.Source build -trimpath -ldflags $ldflags -o $out .
 	if ($LASTEXITCODE -ne 0) { throw "Go build failed with exit code $LASTEXITCODE" }
 } finally {

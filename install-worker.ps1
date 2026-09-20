@@ -6,6 +6,9 @@ param(
 	[string]$Status,
 
 	[Parameter(Mandatory=$true)]
+	[string]$ServiceManagerVersion,
+
+	[Parameter(Mandatory=$true)]
 	[string]$ManagerSource,
 
 	[Parameter(Mandatory=$true)]
@@ -40,7 +43,6 @@ Add-Type -AssemblyName System.ServiceProcess
 
 $ProjectDbArchiveSha256 = '3878c4eba1337e040aea30b9428b07ba6f6a062d7c518db489bcc47f85213758'
 $WinSwSha256 = '05b82d46ad331cc16bdc00de5c6332c1ef818df8ceefcd49c726553209b3a0da'
-$ServiceManagerVersion = '__SERVICE_MANAGER_VERSION__'
 $ProgramFiles64 = [Environment]::GetFolderPath([Environment+SpecialFolder]::ProgramFiles)
 $AppDir = $null
 $ServiceRoot = $null
@@ -288,6 +290,19 @@ function Restart-PreviousServices($Services) {
 
 function Compile-Manager([string]$SourcePath, [string]$OutputPath, [string]$IconPath) {
 	$source = [IO.File]::ReadAllText($SourcePath, [Text.Encoding]::UTF8)
+	$numericVersion = $ServiceManagerVersion -replace '-.*$', ''
+	$versionParts = @($numericVersion.Split('.') | ForEach-Object { [int]$_ })
+	while ($versionParts.Count -lt 4) { $versionParts += 0 }
+	if ($versionParts.Count -gt 4) { $versionParts = $versionParts[0..3] }
+	$fileVersion = ($versionParts -join '.')
+	$versionSource = @"
+using System.Reflection;
+[assembly: AssemblyVersion("$fileVersion")]
+[assembly: AssemblyFileVersion("$fileVersion")]
+[assembly: AssemblyInformationalVersion("$ServiceManagerVersion")]
+"@
+	[string[]]$sources = @($source, $versionSource)
+
 	$tempOutput = $OutputPath + '.new.' + [Guid]::NewGuid().ToString('N') + '.exe'
 	$provider = New-Object Microsoft.CSharp.CSharpCodeProvider
 	try {
@@ -297,7 +312,7 @@ function Compile-Manager([string]$SourcePath, [string]$OutputPath, [string]$Icon
 		$params.OutputAssembly = $tempOutput
 		$params.CompilerOptions = ('/target:winexe /optimize+ /win32icon:"' + $IconPath + '"')
 		@('System.dll','System.Core.dll','System.Drawing.dll','System.Windows.Forms.dll','System.ServiceProcess.dll','System.Xml.dll','System.Web.Extensions.dll') | ForEach-Object { [void]$params.ReferencedAssemblies.Add($_) }
-		$result = $provider.CompileAssemblyFromSource($params, $source)
+		$result = $provider.CompileAssemblyFromSource($params, $sources)
 		if ($result.Errors.HasErrors) {
 			$errors = ($result.Errors | ForEach-Object { $_.ToString() }) -join [Environment]::NewLine
 			throw "Service Manager compilation failed:`r`n$errors"

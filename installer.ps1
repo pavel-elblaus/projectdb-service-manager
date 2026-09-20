@@ -261,20 +261,20 @@ $form.Add_Shown({
 	}
 })
 
-$title = Add-Label $actionTitle 28 22 540 34 $UiText (New-Object Drawing.Font('Segoe UI Semibold', 15))
+Add-Label $actionTitle 28 22 540 34 $UiText (New-Object Drawing.Font('Segoe UI Semibold', 15)) | Out-Null
 
 $subtitleSeparator = [char]0x00B7
 $subtitleText = "Service Manager $ServiceManagerVersion  $subtitleSeparator  ProjectDB $ProjectDbVersion  $subtitleSeparator  Windows $ProjectDbArchitecture"
-$subtitle = Add-Label $subtitleText 30 58 538 24 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.8))
+Add-Label $subtitleText 30 58 538 24 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.8)) | Out-Null
 
 $noteText = if ($isUpdate) {
 	'Existing installation detected. Registered applications and local app.so are preserved.'
 } else {
 	'Applications are configured after setup in ProjectDB Service Manager.'
 }
-$note = Add-Label $noteText 30 82 538 24 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.8))
+Add-Label $noteText 30 82 538 24 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.8)) | Out-Null
 
-$dirLabel = Add-Label 'Installation directory' 30 121 538 22 $UiText
+Add-Label 'Installation directory' 30 121 538 22 $UiText | Out-Null
 
 $dirBorder = New-Object System.Windows.Forms.Panel
 $dirBorder.Location = New-Object Drawing.Point(32, 146)
@@ -322,7 +322,7 @@ $browseButton.Location = New-Object Drawing.Point(456, 146)
 $browseButton.Size = New-Object Drawing.Size(112, 40)
 $form.Controls.Add($browseButton)
 
-$componentsLabel = Add-Label 'Installed components' 30 207 538 22 $UiText
+Add-Label 'Installed components' 30 207 538 22 $UiText | Out-Null
 
 $componentsBorder = New-Object System.Windows.Forms.Panel
 $componentsBorder.Location = New-Object Drawing.Point(32, 232)
@@ -385,7 +385,7 @@ Add-ComponentCell $WinSwVersion 264 97 100 27 $UiText ([Drawing.ContentAlignment
 Add-ComponentCell $WinSwArchitecture 364 97 88 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
 Add-ComponentCell $WinSwLicense 452 97 70 27 $UiText ([Drawing.ContentAlignment]::MiddleCenter) $rowFont | Out-Null
 
-$licenseNote = Add-Label 'License information for bundled components is installed with the application.' 30 364 538 22 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.5))
+Add-Label 'License information for bundled components is installed with the application.' 30 364 538 22 $UiMuted (New-Object Drawing.Font('Segoe UI', 8.5)) | Out-Null
 
 $progress = New-Object System.Windows.Forms.Panel
 $progress.Location = New-Object Drawing.Point(32, 397)

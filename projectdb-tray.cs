@@ -1718,6 +1718,26 @@ namespace ProjectDBTray
 			});
 		}
 
+		private static string GetServiceAutoStartPath(string serviceId)
+		{
+			string stateDirectory = Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+				"ProjectDB", "service-state");
+			return Path.Combine(stateDirectory, serviceId + ".autostart");
+		}
+
+		private static void SetServiceAutoStartState(string serviceId, bool enabled)
+		{
+			string path = GetServiceAutoStartPath(serviceId);
+			string directory = Path.GetDirectoryName(path);
+			if (!Directory.Exists(directory))
+				throw new InvalidOperationException("ProjectDB service startup state is not initialized. Run ProjectDB Setup to update the installation.");
+			if (enabled)
+				File.WriteAllText(path, "1", new UTF8Encoding(false));
+			else if (File.Exists(path))
+				File.Delete(path);
+		}
+
 		private static void DirectControlService(string serviceId, string command)
 		{
 			TimeSpan timeout = TimeSpan.FromSeconds(30);
@@ -1726,6 +1746,7 @@ namespace ProjectDBTray
 				service.Refresh();
 				if (command == "start")
 				{
+					SetServiceAutoStartState(serviceId, true);
 					if (service.Status == ServiceControllerStatus.StopPending) service.WaitForStatus(ServiceControllerStatus.Stopped, timeout);
 					service.Refresh();
 					if (service.Status == ServiceControllerStatus.Stopped) service.Start();
@@ -1733,6 +1754,7 @@ namespace ProjectDBTray
 				}
 				else if (command == "stop")
 				{
+					SetServiceAutoStartState(serviceId, false);
 					if (service.Status == ServiceControllerStatus.StartPending) service.WaitForStatus(ServiceControllerStatus.Running, timeout);
 					service.Refresh();
 					if (service.Status == ServiceControllerStatus.Running || service.Status == ServiceControllerStatus.Paused) service.Stop();

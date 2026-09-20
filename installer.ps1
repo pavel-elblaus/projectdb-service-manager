@@ -569,8 +569,8 @@ $installButton.Add_Click({
 		[Windows.Forms.MessageBox]::Show($form, 'The installation directory is invalid.', $SetupCaption, 'OK', 'Warning') | Out-Null
 		return
 	}
-	if (-not [IO.Path]::IsPathRooted($selectedDir)) {
-		[Windows.Forms.MessageBox]::Show($form, 'Select an absolute installation directory.', $SetupCaption, 'OK', 'Warning') | Out-Null
+	if ($selectedDir -notmatch '^[A-Za-z]:\\') {
+		[Windows.Forms.MessageBox]::Show($form, 'Select an installation directory on a local Windows drive.', $SetupCaption, 'OK', 'Warning') | Out-Null
 		return
 	}
 	$installDirBox.Text = $selectedDir

@@ -498,27 +498,48 @@ try {
 
 	$appExe = Join-Path $AppDir 'projectdb.exe'
 
-	# Recover the known pre-release uninstall residue in the default directory.
+	# Recover a stale pre-release installation left by an incomplete uninstall.
 	if ($mode -eq 'install' -and
 		[String]::Equals($AppDir, (Join-Path $ProgramFiles64 'ProjectDB'), [StringComparison]::OrdinalIgnoreCase) -and
 		-not [IO.File]::Exists($appExe) -and
 		-not (Test-Path -LiteralPath $UninstallKey)) {
-		foreach ($process in @(Get-Process -Name 'projectdb-service-manager' -ErrorAction SilentlyContinue)) {
-			try { $process.Kill(); $process.WaitForExit(5000) } catch {}
-			finally { $process.Dispose() }
-		}
-		try {
-			Remove-Item -LiteralPath $ManagerExe -Force -ErrorAction Stop
-			Add-InstallerLog 'Removed orphaned ProjectDB Service Manager file from a previous incomplete uninstall.'
-		} catch [Management.Automation.ItemNotFoundException] {
-		} catch {
-			Add-InstallerLog ('Recovering access to orphaned Service Manager file: ' + $_.Exception.Message)
+		Add-InstallerLog 'Stale ProjectDB installation directory detected; starting cleanup.'
+
+		# Stop any orphaned Manager process before touching the installation directory.
+		$taskkill = Join-Path $env:SystemRoot 'System32\taskkill.exe'
+		$kill = Invoke-HiddenProcess $taskkill @('/F','/T','/IM','projectdb-service-manager.exe')
+		Add-InstallerLog ('Stale Manager process cleanup exit={0}; output={1}; error={2}' -f $kill.ExitCode, $kill.StdOut.Trim(), $kill.StdErr.Trim())
+		Start-Sleep -Milliseconds 500
+
+		if ([IO.Directory]::Exists($AppDir)) {
 			$takeown = Join-Path $env:SystemRoot 'System32\takeown.exe'
 			$icacls = Join-Path $env:SystemRoot 'System32\icacls.exe'
-			& $takeown /F $ManagerExe /A | Out-Null
-			& $icacls $ManagerExe /grant:r '*S-1-5-32-544:F' | Out-Null
-			Remove-Item -LiteralPath $ManagerExe -Force -ErrorAction Stop
-			Add-InstallerLog 'Recovered and removed orphaned ProjectDB Service Manager file.'
+
+			$own = Invoke-HiddenProcess $takeown @('/F',$AppDir,'/A','/R','/D','Y')
+			Add-InstallerLog ('takeown stale directory exit={0}; output={1}; error={2}' -f $own.ExitCode, $own.StdOut.Trim(), $own.StdErr.Trim())
+
+			$acl = Invoke-HiddenProcess $icacls @($AppDir,'/inheritance:e','/grant:r','*S-1-5-32-544:(OI)(CI)F','/T','/C')
+			Add-InstallerLog ('icacls stale directory exit={0}; output={1}; error={2}' -f $acl.ExitCode, $acl.StdOut.Trim(), $acl.StdErr.Trim())
+
+			$removed = $false
+			for ($i = 0; $i -lt 20; $i++) {
+				try {
+					[IO.Directory]::Delete($AppDir, $true)
+					$removed = $true
+					break
+				} catch {
+					if ($i -eq 0) {
+						Add-InstallerLog ('Waiting for stale installation files to be released: ' + $_.Exception.Message)
+					}
+					Start-Sleep -Milliseconds 500
+				}
+			}
+
+			if (-not $removed -and [IO.Directory]::Exists($AppDir)) {
+				throw 'The previous ProjectDB installation could not be removed. Restart Windows and run Setup again.'
+			}
+
+			Add-InstallerLog 'Removed stale ProjectDB installation directory.'
 		}
 	}
 

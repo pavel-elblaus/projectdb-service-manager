@@ -145,12 +145,6 @@ function Get-ProjectDbPublisherCertificate() {
 	}
 
 	if ($null -eq $cert) {
-		$cert = Get-ChildItem 'Cert:\LocalMachine\My' | Where-Object {
-			$_.Subject -eq $PublisherSubject -and $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date).AddDays(30)
-		} | Sort-Object NotAfter -Descending | Select-Object -First 1
-	}
-
-	if ($null -eq $cert) {
 		Write-Status 73 'Creating local ProjectDB publisher certificate...'
 		$cert = New-SelfSignedCertificate -Type CodeSigningCert `
 			-Subject $PublisherSubject `

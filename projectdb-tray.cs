@@ -2408,7 +2408,13 @@ namespace ProjectDBTray
 
 		private static void OpenServicesConsole()
 		{
-			try { Process.Start(new ProcessStartInfo("services.msc") { UseShellExecute = true }); }
+			try
+			{
+				ProcessStartInfo psi = new ProcessStartInfo("services.msc");
+				psi.WorkingDirectory = Environment.SystemDirectory;
+				psi.UseShellExecute = true;
+				Process.Start(psi);
+			}
 			catch { }
 		}
 

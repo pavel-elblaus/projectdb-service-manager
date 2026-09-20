@@ -54,7 +54,7 @@ namespace ProjectDBServiceControl
 		private static readonly string LibraryMetadataPath = Path.Combine(LibraryDirectory, "app.so.meta.json");
 		private static readonly string LibraryHistoryDirectory = Path.Combine(LibraryDirectory, "history");
 		private static readonly string ServiceStateDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "ProjectDB", "service-state");
-		private const string StartupTaskName = "\\ProjectDB\\ProjectDB Service Startup";
+		private const string StartupTaskName = "ProjectDB Service Startup";
 		private const string PublisherSubject = "CN=ProjectDB Local Publisher";
 		private const string ProjectDbRegistryPath = "SOFTWARE\\ProjectDB";
 		private const string PublisherThumbprintValue = "SigningCertificateThumbprint";

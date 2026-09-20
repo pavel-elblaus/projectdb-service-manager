@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
@@ -40,6 +41,40 @@ namespace ProjectDBServiceControl
 
 	internal static class Program
 	{
+		[StructLayout(LayoutKind.Sequential)]
+		private struct SystemHandleEntry
+		{
+			public IntPtr Object;
+			public IntPtr ProcessId;
+			public IntPtr Handle;
+			public uint GrantedAccess;
+			public ushort CreatorBackTraceIndex;
+			public ushort ObjectTypeIndex;
+			public uint HandleAttributes;
+			public uint Reserved;
+		}
+
+		[DllImport("ntdll.dll")]
+		private static extern int NtQuerySystemInformation(int systemInformationClass, IntPtr systemInformation, int systemInformationLength, out int returnLength);
+
+		[DllImport("kernel32.dll", SetLastError = true)]
+		private static extern IntPtr OpenProcess(uint desiredAccess, bool inheritHandle, int processId);
+
+		[DllImport("kernel32.dll", SetLastError = true)]
+		private static extern bool DuplicateHandle(IntPtr sourceProcessHandle, IntPtr sourceHandle, IntPtr targetProcessHandle, out IntPtr targetHandle, uint desiredAccess, bool inheritHandle, uint options);
+
+		[DllImport("kernel32.dll")]
+		private static extern IntPtr GetCurrentProcess();
+
+		[DllImport("kernel32.dll", SetLastError = true)]
+		private static extern bool CloseHandle(IntPtr handle);
+
+		[DllImport("kernel32.dll")]
+		private static extern uint GetFileType(IntPtr handle);
+
+		[DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+		private static extern uint GetFinalPathNameByHandle(IntPtr handle, StringBuilder path, uint pathLength, uint flags);
+
 		private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 		private static readonly string ExecutableDirectory = AppDomain.CurrentDomain.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 		private static readonly string BaseDirectory = String.Equals(new DirectoryInfo(ExecutableDirectory).Name, "bin", StringComparison.OrdinalIgnoreCase)
@@ -672,6 +707,7 @@ namespace ProjectDBServiceControl
 						new UTF8Encoding(false));
 				}
 				catch { }
+				LogDirectoryHandleOwners(BaseDirectory);
 
 				MessageBox.Show("ProjectDB was uninstalled successfully.", "ProjectDB", MessageBoxButtons.OK, MessageBoxIcon.Information);
 				ScheduleDirectoryRemoval(BaseDirectory);
@@ -799,6 +835,107 @@ namespace ProjectDBServiceControl
 					if (software != null)
 						software.DeleteSubKeyTree("ProjectDB", false);
 				}
+			}
+			catch { }
+		}
+
+		private static void LogDirectoryHandleOwners(string path)
+		{
+			IntPtr buffer = IntPtr.Zero;
+			try
+			{
+				int length = 1024 * 1024;
+				int needed;
+				int status;
+				while (true)
+				{
+					buffer = Marshal.AllocHGlobal(length);
+					status = NtQuerySystemInformation(64, buffer, length, out needed);
+					if (status == 0) break;
+					Marshal.FreeHGlobal(buffer);
+					buffer = IntPtr.Zero;
+					if (status != unchecked((int)0xC0000004))
+					{
+						AppendCleanupLog("Handle scan failed: NtQuerySystemInformation status=0x" + status.ToString("X8"));
+						return;
+					}
+					length = Math.Max(length * 2, needed + 65536);
+				}
+
+				long count = Marshal.ReadIntPtr(buffer).ToInt64();
+				int size = Marshal.SizeOf(typeof(SystemHandleEntry));
+				long offset = IntPtr.Size * 2L;
+				string target = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar);
+				HashSet<string> found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+				for (long i = 0; i < count; i++)
+				{
+					IntPtr entryPtr = new IntPtr(buffer.ToInt64() + offset + i * size);
+					SystemHandleEntry entry = (SystemHandleEntry)Marshal.PtrToStructure(entryPtr, typeof(SystemHandleEntry));
+					long pidValue = entry.ProcessId.ToInt64();
+					if (pidValue <= 0 || pidValue > Int32.MaxValue) continue;
+					int pid = (int)pidValue;
+
+					IntPtr processHandle = OpenProcess(0x0040 | 0x1000, false, pid);
+					if (processHandle == IntPtr.Zero) continue;
+					try
+					{
+						IntPtr duplicate;
+						if (!DuplicateHandle(processHandle, entry.Handle, GetCurrentProcess(), out duplicate, 0, false, 0x00000002))
+							continue;
+						try
+						{
+							if (GetFileType(duplicate) != 1) continue;
+							StringBuilder value = new StringBuilder(4096);
+							uint chars = GetFinalPathNameByHandle(duplicate, value, (uint)value.Capacity, 0);
+							if (chars == 0 || chars >= value.Capacity) continue;
+
+							string handlePath = value.ToString();
+							if (handlePath.StartsWith(@"\\?\", StringComparison.Ordinal))
+								handlePath = handlePath.Substring(4);
+							handlePath = handlePath.TrimEnd(Path.DirectorySeparatorChar);
+
+							if (!String.Equals(handlePath, target, StringComparison.OrdinalIgnoreCase))
+								continue;
+
+							string processName = "unknown";
+							try
+							{
+								using (Process process = Process.GetProcessById(pid))
+									processName = process.ProcessName;
+							}
+							catch { }
+
+							string key = pid.ToString() + "|" + processName;
+							if (found.Add(key))
+								AppendCleanupLog("Directory handle owner: PID=" + pid.ToString() + "; process=" + processName + "; path=" + handlePath);
+						}
+						finally { CloseHandle(duplicate); }
+					}
+					finally { CloseHandle(processHandle); }
+				}
+
+				if (found.Count == 0)
+					AppendCleanupLog("Directory handle scan found no owner for: " + target);
+			}
+			catch (Exception ex)
+			{
+				AppendCleanupLog("Directory handle scan failed: " + ex.GetType().FullName + ": " + ex.Message);
+			}
+			finally
+			{
+				if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer);
+			}
+		}
+
+		private static void AppendCleanupLog(string text)
+		{
+			try
+			{
+				File.AppendAllText(
+					CleanupLogPath,
+					DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " " + text + Environment.NewLine,
+					new UTF8Encoding(false));
 			}
 			catch { }
 		}

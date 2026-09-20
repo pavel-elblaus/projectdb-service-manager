@@ -128,6 +128,8 @@ func elevate() bool {
 }
 
 func main() {
+	launcherLogPath := filepath.Join(os.TempDir(), "ProjectDB-Setup-launcher.log")
+	_ = os.Remove(launcherLogPath)
 	launcherLog(setupTitle + " started")
 
 	if !isAdmin() {
@@ -216,4 +218,5 @@ func main() {
 		return
 	}
 	launcherLog("PowerShell installer UI exited normally")
+	_ = os.Remove(launcherLogPath)
 }
